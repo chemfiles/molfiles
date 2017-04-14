@@ -170,6 +170,17 @@ typedef struct {
 #endif
 } lammpsdata;
 
+// The kernel provided strdup function return garbage when compiled with gcc 
+// 5.1.1 on Fedora 23/24 x86_64, dereferencing or freeing the string causes a
+// segfault.
+static char* myStrdup(const char* string) {
+  size_t len = strlen(string);
+  char* buffer = malloc(len + 1);
+  strcpy(buffer, string);
+  buffer[len] = '\0';
+  return buffer;
+}
+
 /* merge sort for integer atom id map: merge function */
 static void id_merge(int *output, int *left, int nl, int *right, int nr)
 {
@@ -362,7 +373,7 @@ static void *open_lammps_read(const char *filename, const char *filetype,
  
   data = (lammpsdata *)calloc(1, sizeof(lammpsdata));
   data->file = fd;
-  data->file_name = strdup(filename);
+  data->file_name = myStrdup(filename);
   data->dip2atoms = -1.0;
   data->fieldinit = 0;
   *natoms = 0;
@@ -506,7 +517,7 @@ static int read_lammps_structure(void *mydata, int *optflags,
 #if LAMMPS_DEBUG  
   fprintf(stderr,"fieldlist for atoms: %s", fieldlist);
 #if 0  /* simulate old style trajectory */
-  fieldlist = strdup("\n");
+  fieldlist = myStrdup("\n");
 #endif
 #endif
 
@@ -1398,7 +1409,7 @@ static void *open_lammps_write(const char *filename, const char *filetype,
   data = (lammpsdata *)malloc(sizeof(lammpsdata));
   data->numatoms = natoms;
   data->fp = fp;
-  data->file_name = strdup(filename);
+  data->file_name = myStrdup(filename);
   data->nstep = 0;
   return data;
 }
