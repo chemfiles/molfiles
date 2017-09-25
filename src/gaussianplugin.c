@@ -1,3 +1,5 @@
+#if false
+
 /***************************************************************************
  *cr
  *cr            (C) Copyright 1995-2016 The Board of Trustees of the
@@ -29,7 +31,7 @@
 
 #define THISPLUGIN plugin
 #include "vmdconio.h"
- 
+
 /*
  * Error reporting macro for use in DEBUG mode
  */
@@ -90,11 +92,11 @@
 #define STATUS_TOO_MANY_STEPS 2
 #define STATUS_BROKEN_OFF     3
 
-static const char *runtypes[] = { 
-  "(unknown)", "ENERGY", "OPTIMIZE", "SADPOINT", "HESSIAN", 
+static const char *runtypes[] = {
+  "(unknown)", "ENERGY", "OPTIMIZE", "SADPOINT", "HESSIAN",
   "SURFACE", "DYNAMICS", "PROPERTIES", NULL};
 
-static const char *scftypes[] = { 
+static const char *scftypes[] = {
   "(unknown)", "RHF", "UHF", "ROHF", "GVB", "MCSCF", "FF", NULL };
 
 
@@ -102,11 +104,11 @@ static const char *scftypes[] = {
 /* declaration/documentation of internal (static) functions */
 /* ######################################################## */
 
-/** Top level gaussian log file parser. Responsible 
+/** Top level gaussian log file parser. Responsible
  *  for static, i.e. non-trajectory information. */
 static int parse_static_data(gaussiandata *, int *);
 
-/** Check if the current run is an actual Gaussian run; 
+/** Check if the current run is an actual Gaussian run;
  *  returns true/false */
 static int have_gaussian(gaussiandata *);
 
@@ -130,7 +132,7 @@ static int get_int_coordinates(FILE *file, qm_atom_t *atoms, int numatoms);
 static int get_contrl(gaussiandata *);
 
 /** the function get_initial_info provides the atom number,
- *  coordinates, and atom types and stores them temporarily. */ 
+ *  coordinates, and atom types and stores them temporarily. */
 static int get_final_info(gaussiandata *);
 
 /* in the function get_basis we parse the basis function section to
@@ -195,12 +197,12 @@ static void fix_fortran_exp(char *string) {
  * read_gaussian_metadata() and read_gaussian_rundata().
  *
  * *************************************************************/
-static void *open_gaussian_read(const char *filename, 
+static void *open_gaussian_read(const char *filename,
                   const char *filetype, int *natoms) {
 
   FILE *fd;
   gaussiandata *data;
-  
+
   /* open the input file */
   fd = fopen(filename, "rb");
   if (fd == NULL) {
@@ -211,13 +213,13 @@ static void *open_gaussian_read(const char *filename,
   /* set up main data structure */
   data = (gaussiandata *) calloc(1,sizeof(gaussiandata));
   if (data == NULL) return NULL;
-  
+
   data->runtyp = RUNTYP_UNKNOWN;
   data->scftyp = SCFTYP_UNKNOWN;
   data->file = fd;
   data->file_name = strdup(filename);
 
-  /* check if the file is Gaussian format; 
+  /* check if the file is Gaussian format;
    * if yes parse it, if not exit */
   if (have_gaussian(data)==TRUE) {
     /* if we're dealing with an unsupported Gaussian
@@ -231,7 +233,7 @@ static void *open_gaussian_read(const char *filename,
       return NULL;
     }
 
-    /* get the non-trajectory information from the log file */    
+    /* get the non-trajectory information from the log file */
     if (parse_static_data(data, natoms) == FALSE) {
       free(data);
       return NULL;
@@ -247,28 +249,28 @@ static void *open_gaussian_read(const char *filename,
 
 
 /************************************************************
- * 
+ *
  * Provide VMD with the structure of the molecule, i.e the
  * atoms coordinates names, etc.
  *
  *************************************************************/
-static int read_gaussian_structure(void *mydata, int *optflags, 
-                      molfile_atom_t *atoms) 
+static int read_gaussian_structure(void *mydata, int *optflags,
+                      molfile_atom_t *atoms)
 {
   gaussiandata *data = (gaussiandata *)mydata;
   qm_atom_t *cur_atom;
   molfile_atom_t *atom;
   int i = 0;
- 
+
   /* optional data from PTE */
   *optflags = MOLFILE_ATOMICNUMBER | MOLFILE_MASS | MOLFILE_RADIUS;
 
-  if (data->have_mulliken) 
+  if (data->have_mulliken)
     *optflags |= MOLFILE_CHARGE;
 
   /* all the information I need has already been read in
-   * via the initial scan and I simply need to copy 
-   * everything from the temporary arrays into the 
+   * via the initial scan and I simply need to copy
+   * everything from the temporary arrays into the
    * proper VMD arrays. */
 
   /* get initial pointer for atom array */
@@ -276,23 +278,23 @@ static int read_gaussian_structure(void *mydata, int *optflags,
 
   for(i=0; i<data->numatoms; i++) {
     atom = atoms+i;
-    strncpy(atom->name, cur_atom->type, sizeof(atom->name)); 
+    strncpy(atom->name, cur_atom->type, sizeof(atom->name));
     strncpy(atom->type, get_pte_label(cur_atom->atomicnum), sizeof(atom->type));
-    strncpy(atom->resname,"QM", sizeof(atom->resname)); 
+    strncpy(atom->resname,"QM", sizeof(atom->resname));
     atom->resid = 1;
     atom->chain[0] = '\0';
     atom->segid[0] = '\0';
     atom->atomicnumber = cur_atom->atomicnum;
     atom->radius = get_pte_vdw_radius(cur_atom->atomicnum);
     /* XXX; check for isotopes. should be possible to read. */
-    atom->mass   = get_pte_mass(cur_atom->atomicnum);  
+    atom->mass   = get_pte_mass(cur_atom->atomicnum);
     if (data->have_mulliken)
       atom->charge = data->qm_timestep->mulliken_charges[i];
 
     cur_atom++;
   }
- 
-  return MOLFILE_SUCCESS; 
+
+  return MOLFILE_SUCCESS;
 }
 
 
@@ -303,7 +305,7 @@ static int read_gaussian_structure(void *mydata, int *optflags,
  * available
  *
  *****************************************************/
-static int read_gaussian_metadata(void *mydata, 
+static int read_gaussian_metadata(void *mydata,
     molfile_qm_metadata_t *gaussian_metadata) {
 
   gaussiandata *data = (gaussiandata *)mydata;
@@ -316,11 +318,11 @@ static int read_gaussian_metadata(void *mydata,
   gaussian_metadata->num_basis_funcs = data->num_basis_funcs;
   gaussian_metadata->num_basis_atoms = data->num_basis_atoms;
   gaussian_metadata->num_shells      = data->num_shells;
-  gaussian_metadata->wavef_size      = data->wavef_size;  
+  gaussian_metadata->wavef_size      = data->wavef_size;
 
 #if vmdplugin_ABIVERSION > 11
   gaussian_metadata->have_sysinfo = 1;
-  
+
   /* charges */
   gaussian_metadata->have_esp = 0;
   gaussian_metadata->have_carthessian = 0;
@@ -333,7 +335,7 @@ static int read_gaussian_metadata(void *mydata,
 
 
 /******************************************************
- * 
+ *
  * Provide VMD with the static (i.e. non-trajectory)
  * data. That means we are filling the molfile_plugin
  * data structures.
@@ -348,7 +350,7 @@ static int read_gaussian_rundata(void *mydata, molfile_qm_t *qm_data) {
 
   /* fill in molfile_qm_sysinfo_t */
   sys_data->nproc = data->nproc;
-  sys_data->memory = data->memory; 
+  sys_data->memory = data->memory;
   sys_data->runtype = data->runtyp;
   sys_data->scftype = data->scftyp;
   sys_data->totalcharge = data->totalcharge;
@@ -359,7 +361,7 @@ static int read_gaussian_rundata(void *mydata, molfile_qm_t *qm_data) {
 
   strncpy(sys_data->basis_string, data->basis_string,
           sizeof(sys_data->basis_string));
-  
+
   strncpy(sys_data->runtitle, data->runtitle, sizeof(sys_data->runtitle));
   strncpy(sys_data->geometry, data->geometry, sizeof(sys_data->geometry));
   strncpy(sys_data->version_string, data->version_string,
@@ -368,18 +370,18 @@ static int read_gaussian_rundata(void *mydata, molfile_qm_t *qm_data) {
 #if vmdplugin_ABIVERSION > 11
   /* fill in molfile_qm_basis_t */
   if (data->num_basis_funcs) {
-    memcpy(basis_data->num_shells_per_atom, data->num_shells_per_atom, 
+    memcpy(basis_data->num_shells_per_atom, data->num_shells_per_atom,
            data->num_basis_atoms*sizeof(int));
-    memcpy(basis_data->num_prim_per_shell, data->num_prim_per_shell, 
+    memcpy(basis_data->num_prim_per_shell, data->num_prim_per_shell,
            data->num_shells*sizeof(int));
-    memcpy(basis_data->shell_symmetry, data->shell_symmetry, 
+    memcpy(basis_data->shell_symmetry, data->shell_symmetry,
            data->num_shells*sizeof(int));
     memcpy(basis_data->basis, data->basis, 2*data->num_basis_funcs*sizeof(float));
-    memcpy(basis_data->angular_momentum, data->angular_momentum, 
+    memcpy(basis_data->angular_momentum, data->angular_momentum,
            3*data->wavef_size*sizeof(int));
   }
 #endif
- 
+
   return MOLFILE_SUCCESS;
 }
 
@@ -387,7 +389,7 @@ static int read_gaussian_rundata(void *mydata, molfile_qm_t *qm_data) {
 #if vmdplugin_ABIVERSION > 11
 
 /***********************************************************
- * Provide non-QM metadata for next timestep. 
+ * Provide non-QM metadata for next timestep.
  * Required by the plugin interface.
  ***********************************************************/
 static int read_timestep_metadata(void *mydata,
@@ -399,7 +401,7 @@ static int read_timestep_metadata(void *mydata,
 }
 
 /***********************************************************
- * Provide QM metadata for next timestep. 
+ * Provide QM metadata for next timestep.
  * This actually triggers reading the entire next timestep
  * since we have to parse the whole timestep anyway in order
  * to get the metadata. So we store the read data locally
@@ -411,9 +413,9 @@ static int read_qm_timestep_metadata(void *mydata,
   int i, have = 0;
   gaussiandata *data = (gaussiandata *)mydata;
 #if GAUSSIAN_DEBUG
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) read_qm_timestep_metadata(): %d/%d/%d\n",
-                data->num_frames, 
+                data->num_frames,
                 data->num_frames_read,
                 data->num_frames_sent);
 #endif
@@ -437,11 +439,11 @@ static int read_qm_timestep_metadata(void *mydata,
     qm_timestep_t *cur_qm_ts = data->qm_timestep+data->num_frames_sent;
 #if GAUSSIAN_DEBUG
     vmdcon_printf(VMDCON_INFO,
-                  "gaussianplugin) Approved timestep %d\n", 
+                  "gaussianplugin) Approved timestep %d\n",
                   data->num_frames_sent);
 #endif
     meta->num_scfiter  = cur_qm_ts->num_scfiter;
-    for (i=0; (i<MAX_NUM_WAVE && i<cur_qm_ts->numwave); i++) { 
+    for (i=0; (i<MAX_NUM_WAVE && i<cur_qm_ts->numwave); i++) {
 #if GAUSSIAN_DEBUG
       vmdcon_printf(VMDCON_INFO,
                     "gaussianplugin) num_orbitals_per_wavef[%d/%d]=%d\n",
@@ -473,9 +475,9 @@ static int read_qm_timestep_metadata(void *mydata,
  * into the one's provided by VMD.
  *
  ***********************************************************/
-static int read_timestep(void *mydata, int natoms, 
+static int read_timestep(void *mydata, int natoms,
        molfile_timestep_t *ts, molfile_qm_metadata_t *qm_metadata,
-			 molfile_qm_timestep_t *qm_ts) 
+			 molfile_qm_timestep_t *qm_ts)
 {
   gaussiandata *data = (gaussiandata *)mydata;
   qm_atom_t *cur_atom;
@@ -486,21 +488,21 @@ static int read_timestep(void *mydata, int natoms,
 
 #if GAUSSIAN_DEBUG
   vmdcon_printf(VMDCON_INFO,
-                "gaussianplugin) Sending timestep %d\n", 
+                "gaussianplugin) Sending timestep %d\n",
                 data->num_frames_sent);
 #endif
 
   /* initialize pointer for temporary arrays */
-  cur_atom = data->initatoms; 
-  
+  cur_atom = data->initatoms;
+
   /* copy the coordinates */
   for(i=0; i<natoms; i++) {
     ts->coords[3*i  ] = cur_atom->x;
     ts->coords[3*i+1] = cur_atom->y;
-    ts->coords[3*i+2] = cur_atom->z; 
+    ts->coords[3*i+2] = cur_atom->z;
     cur_atom++;
-  }    
-  
+  }
+
   /* get a convenient pointer to the current qm timestep */
   cur_qm_ts = data->qm_timestep+data->num_frames_sent;
 
@@ -535,7 +537,7 @@ static int read_timestep(void *mydata, int natoms,
 
 
 
-/** Clean up when done and free all memory 
+/** Clean up when done and free all memory
  *  to avoid memory leaks.
  *
  **********************************************************/
@@ -564,7 +566,7 @@ static void close_gaussian_read(void *mydata) {
         free(data->basis_set[i].shell[j].prim);
       }
       free(data->basis_set[i].shell);
-    } 
+    }
     free(data->basis_set);
   }
 
@@ -580,7 +582,7 @@ static void close_gaussian_read(void *mydata) {
     free(data->qm_timestep[i].wave);
   }
   free(data->qm_timestep);
-  
+
   free(data);
 }
 
@@ -593,11 +595,11 @@ static void close_gaussian_read(void *mydata) {
 
 /********************************************************
  *
- * Main gaussian log file parser responsible for static,  
+ * Main gaussian log file parser responsible for static,
  * i.e. non-trajectory information.
  *
  ********************************************************/
-static int parse_static_data(gaussiandata *data, int *natoms) 
+static int parse_static_data(gaussiandata *data, int *natoms)
 {
   /* Read # of procs and amount of requested memory */
   if (!get_proc_mem(data))        return FALSE;
@@ -618,7 +620,7 @@ static int parse_static_data(gaussiandata *data, int *natoms)
   *natoms = data->numatoms;
   /* read first set of coordinates and basis set data */
   read_first_frame(data);
-  
+
   /* */
   get_final_info(data);
 
@@ -636,17 +638,17 @@ static int parse_static_data(gaussiandata *data, int *natoms)
  * actually a Gaussian file;
  *
  **********************************************************/
-static int have_gaussian(gaussiandata *data) 
+static int have_gaussian(gaussiandata *data)
 {
   char word[4][MOLFILE_BUFSIZ];
   char buffer[BUFSIZ];
   char *ptr;
   int i = 0;
- 
+
   buffer[0] = '\0';
   for (i=0; i<3; i++) word[i][0] = '\0';
 
-  /* check if the file is Gaussian format 
+  /* check if the file is Gaussian format
    * Gaussian output typically begins with:
    * 'Entering Gaussian System' */
   i=0; /* check only the first 100 lines */
@@ -654,12 +656,12 @@ static int have_gaussian(gaussiandata *data)
     GET_LINE(buffer, data->file);
     sscanf(buffer,"%s%s%s",word[0],word[1],word[2]);
     ++i;
-  } while( (strcmp(word[0],"Entering") || 
-            strcmp(word[1],"Gaussian") || 
+  } while( (strcmp(word[0],"Entering") ||
+            strcmp(word[1],"Gaussian") ||
             strcmp(word[2],"System,")) && (i<100) );
   if (i>=100) return FALSE;
   vmdcon_printf(VMDCON_INFO, "gaussianplugin) Analyzing Gaussian log file: %s\n",data->file_name);
-  
+
   /* now read on until we find the block of text with encoded version
    * number and compile date. */
   i=0; /* check only the next 100 lines */
@@ -684,7 +686,7 @@ static int have_gaussian(gaussiandata *data)
   strcpy(data->version_string,word[2]);
 
   ptr=strrchr(word[2],'-');
-  if (ptr != NULL) { 
+  if (ptr != NULL) {
       /* extract revision and patchlevel from G##Rev%.## word.*/
       ptr += 7;
       i =  (*ptr) - 'A' + 1;
@@ -692,8 +694,8 @@ static int have_gaussian(gaussiandata *data)
       ++ptr; ++ptr;
       data->version += atoi(ptr);
   }
-  
-  vmdcon_printf(VMDCON_INFO, 
+
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) Gaussian version = %s  (Version code: %d)\n",
                 data->version_string, data->version);
   vmdcon_printf(VMDCON_INFO,
@@ -725,13 +727,13 @@ static int get_proc_mem(gaussiandata *data) {
   /* set some defaults */
   nproc = 1;
   maxmem = -1;
-  
+
   do {
       GET_LINE(buffer, data->file);
       sscanf(buffer,"%s%s%s%*s%s%*s%*s%*s%*s%*s%s",
              word[0],word[1],word[2],word[3],word[4]);
 
-      /* max dynamical memory. */ 
+      /* max dynamical memory. */
       if ((strcmp(word[0],"Leave") == 0) &&
           (strcmp(word[1],"Link")  == 0)) {
         link = atoi(word[2]);
@@ -746,7 +748,7 @@ static int get_proc_mem(gaussiandata *data) {
         nproc = atoi(word[3]);
       }
 
-      /* detect if have read too far */ 
+      /* detect if have read too far */
       if (((strcmp(word[0],"Standard") == 0) ||
            (strcmp(word[0],"Z-Matrix") == 0) ||
            (strcmp(word[0],"Input") == 0) ) &&
@@ -759,8 +761,8 @@ static int get_proc_mem(gaussiandata *data) {
   /* store findings */
   data->nproc = nproc;
   data->memory = maxmem;
-  if (maxmem) 
-    vmdcon_printf(VMDCON_INFO, 
+  if (maxmem)
+    vmdcon_printf(VMDCON_INFO,
                   "gaussianplugin) Gaussian used %2d SMP process(es), "
                   "% 6d Mbytes of memory \n", nproc, maxmem);
 
@@ -818,10 +820,10 @@ static int get_basis_options(gaussiandata *data) {
 
         strncpy(data->gbasis, "GEN", 4);
         strncpy(data->basis_string, buffer, MOLFILE_BUFSIZ);
-      
-      } else if ( (strcmp(word[0],"AO") == 0) 
+
+      } else if ( (strcmp(word[0],"AO") == 0)
                   && (strcmp(word[1],"basis") == 0) ) {
-        /* inline basis definition. count number of atomic basis 
+        /* inline basis definition. count number of atomic basis
          * functions and primitive gaussians */
         int numcenter, numgauss, numbasis, numshell;
         numcenter=numgauss=numbasis=numshell=0;
@@ -872,13 +874,13 @@ static int get_basis_options(gaussiandata *data) {
               return MOLFILE_ERROR;
             }
             /* skip over lines with primitives */
-            for (i=0; i < numprim; ++i) 
+            for (i=0; i < numprim; ++i)
               GET_LINE(buffer, data->file);
 
 #if GAUSSIAN_DEBUG
             vmdcon_printf(VMDCON_INFO, "numcenter:% 4d  numbasis:% 4d  numgauss:% 4d  "
                     "numshell:% 4d\n", numcenter, numbasis, numgauss, numshell);
-#endif        
+#endif
           } while (strcmp(word[0],"****"));
           GET_LINE(buffer, data->file);
           i=sscanf(buffer,"%s%s",word[0], word[1]);
@@ -903,11 +905,11 @@ static int get_basis_options(gaussiandata *data) {
     }
   } while (nume_a < 0);
 
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) %d shells with %d/%d basis functions, "
                 "%d/%d primitive gaussians\n", data->num_shells,
                 nfunc, data->wavef_size, nprim, data->num_basis_funcs);
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) %d QM atoms with %d alpha electrons, "
                 "%d beta electron\n", data->num_basis_atoms, nume_a, nume_b);
 
@@ -916,7 +918,7 @@ static int get_basis_options(gaussiandata *data) {
   data->occ_orbitals_B = nume_b;
   data->num_electrons  = nume_a + nume_b;
   data->multiplicity   = (nume_a+nume_b)/2-(nume_a>nume_b?nume_b:nume_a)+1;
-  
+
   return TRUE;
 }
 
@@ -931,15 +933,15 @@ static int get_runtitle(gaussiandata *data) {
   char buffer[BUFSIZ];
   char *temp;
   size_t offs;
-  
+
   /* look for RUN TITLE section */
   do {
     GET_LINE(buffer, data->file);
   } while (strncmp(buffer," -", 2) );
-  
+
   GET_LINE(buffer, data->file);
   do {
-    char s; 
+    char s;
 
     offs=strlen(buffer);
     temp=&buffer[offs];
@@ -955,9 +957,9 @@ static int get_runtitle(gaussiandata *data) {
   while (*temp == '-' || *temp == '\n' || *temp == '\r') --temp;
   ++temp;  *temp='\0';
   strncpy(data->runtitle,buffer,sizeof(data->runtitle));
-  
+
   return TRUE;
-} 
+}
 
 
 /* Read the input atom definitions and geometry */
@@ -968,25 +970,25 @@ static int get_input_structure(gaussiandata *data) {
 
   buffer[0] = '\0';
   for (i=0; i<4; i++) word[i][0] = '\0';
-  
+
   GET_LINE(buffer, data->file);
   sscanf(buffer,"%s%s",word[0],word[1]);
-  
+
   if ( ( (strcmp(word[0],"Symbolic") == 0) &&
          (strcmp(word[1],"Z-matrix:") == 0) ) ||
        ( (strcmp(word[0],"Redundant") == 0) &&
-         (strcmp(word[1],"internal") == 0)  ) || 
+         (strcmp(word[1],"internal") == 0)  ) ||
        ( (strcmp(word[0],"Z-Matrix") == 0) &&
          (strcmp(word[1],"taken") == 0) ) ) {
 
     /* skip over line with checkpoint file name */
     if ( ( (strcmp(word[0],"Redundant") == 0) &&
-           (strcmp(word[1],"internal") == 0)  ) || 
+           (strcmp(word[1],"internal") == 0)  ) ||
          ( (strcmp(word[0],"Z-Matrix") == 0) &&
            (strcmp(word[1],"taken") == 0) ) ) {
       GET_LINE(buffer, data->file);
     }
-      
+
     /* charge and multiplicity */
     GET_LINE(buffer, data->file);
     sscanf(buffer,"%*s%*s%d%*s%*s%d", &(data->totalcharge),
@@ -999,17 +1001,17 @@ static int get_input_structure(gaussiandata *data) {
     do {
       char *ptr;
       qm_atom_t *atm;
-      
+
       i=1;
       GET_LINE(buffer, data->file);
       ptr = strtok(buffer," ,\t\n");
-      
+
       if (ptr == NULL) break;
       if (strcmp(ptr, "Variables:") == 0) break;
       if (strcmp(ptr, "Recover") == 0) break;
       if (strcmp(ptr, "The") == 0) break;
       if (strcmp(ptr, "Leave") == 0) break;
-      
+
       /* for now we only read the atom label */
       data->initatoms=realloc(data->initatoms,(numatoms+1)*sizeof(qm_atom_t));
       atm = data->initatoms + numatoms;
@@ -1023,13 +1025,13 @@ static int get_input_structure(gaussiandata *data) {
                   "gaussianplugin) ERROR, cannot parse input coordinates.\n");
     return FALSE;
   }
-  
+
   /* store number of atoms in data structure */
   data->numatoms = numatoms;
-  vmdcon_printf(VMDCON_INFO, 
-                "gaussianplugin) Atoms: %d   Charge: %d   Multiplicity: %d\n", 
+  vmdcon_printf(VMDCON_INFO,
+                "gaussianplugin) Atoms: %d   Charge: %d   Multiplicity: %d\n",
                 numatoms, data->totalcharge, data->multiplicity);
-  return TRUE; 
+  return TRUE;
 }
 
 
@@ -1039,7 +1041,7 @@ static int get_input_structure(gaussiandata *data) {
  *
  * XXX: there currently do not seem to be any provisions
  * XXX: for multi-step jobs, i.e. jobs that either have
- * XXX: multiple run types in one calculations or perform 
+ * XXX: multiple run types in one calculations or perform
  * XXX: several calculation steps subsequently...
  *
  **********************************************************/
@@ -1052,19 +1054,19 @@ static int get_contrl(gaussiandata *data) {
 
   buffer[0] = '\0';
   rewind(data->file);
-  
+
   /* try to find route section. */
   do {
     GET_LINE(buffer, data->file);
   } while( strncmp(buffer," #", 2) );
 
-  /* append to string in buffer until we reach the end of 
+  /* append to string in buffer until we reach the end of
    * the route section. this way we'll have the whole info
    * in one long string.
-   * Gaussian writes this out with format (x,A70), so 
+   * Gaussian writes this out with format (x,A70), so
    * joining lines need some special tricks.  */
   do {
-    char s; 
+    char s;
 
     offs=strlen(buffer);
     temp=&buffer[offs];
@@ -1133,7 +1135,7 @@ static int get_contrl(gaussiandata *data) {
   } else {
     data->scftyp = SCFTYP_RHF;
   }
-        
+
   /* for semi-empirical, we set the basis to valence-STO-3G. */
   if ((strstr(buffer," AM1/")) ||
       (strstr(buffer," AM1 ")) ||
@@ -1143,9 +1145,9 @@ static int get_contrl(gaussiandata *data) {
       (strstr(buffer," MNDO "))) {
 
     vmdbasis = getenv("VMDDEFBASISSET");
-    if (vmdbasis == NULL) 
+    if (vmdbasis == NULL)
       vmdbasis = "VSTO-3G";
-    
+
     if(strlen(data->gbasis) == 0)
       strncpy(data->gbasis, vmdbasis, sizeof(data->gbasis));
 
@@ -1166,21 +1168,21 @@ static int get_contrl(gaussiandata *data) {
 
   /* find run type. XXX: might be safer to detect from output. */
   data->runtyp = RUNTYP_ENERGY;  /* default */
-  if ((strstr(buffer," FOPT ")) || 
+  if ((strstr(buffer," FOPT ")) ||
       (strstr(buffer," FOPT=")) ||
       (strstr(buffer," FOPT(")) ||
       (strstr(buffer," OPT=")) ||
       (strstr(buffer," OPT(")) ||
       (strstr(buffer," OPT "))) {
     data->runtyp = RUNTYP_OPTIMIZE;
-  } 
+  }
   if (strstr(buffer," FREQ ")) {
     data->runtyp = RUNTYP_HESSIAN;
   }
   if (strstr(buffer," SCAN ")) {
     data->runtyp = RUNTYP_SURFACE;
   }
-        
+
   /* make sure we have some basis set string
    * and allow to set it from within VMD. */
   vmdbasis = getenv("VMDDEFBASISSET");
@@ -1209,20 +1211,20 @@ static int get_contrl(gaussiandata *data) {
   /* print (some of) our findings */
   vmdcon_printf(VMDCON_INFO, "gaussianplugin) Run-type: %s, SCF-type: %s\n",
                 runtypes[data->runtyp], scftypes[data->scftyp]);
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) using %s basis set.\n", data->basis_string);
-  
+
   return TRUE;
 }
 
 static int read_first_frame(gaussiandata *data) {
   data->qm_timestep = NULL;
 
-  /* the angular momentum is populated in get_wavefunction 
+  /* the angular momentum is populated in get_wavefunction
    * which is called by get_traj_frame(). We have obtained
    * the array size wavef_size already from the basis set
    * statistics */
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) preparing for %d atomic basis functions "
                 "per wavefunction.\n", data->wavef_size);
   SAFE_CALLOC(data->angular_momentum,int,3*data->wavef_size);
@@ -1238,7 +1240,7 @@ static int read_first_frame(gaussiandata *data) {
 /******************************************************
  *
  * Reads the info printed after the geometry search
- * has finished or whatever analysis was done in a 
+ * has finished or whatever analysis was done in a
  * single point run, e.g. ESP charges, Hessian, etc.
  * Rewinds to the beginning of the search when done,
  * because we read this part at in the initial phase
@@ -1250,7 +1252,7 @@ static int get_final_info(gaussiandata *data) {
   long filepos;
   filepos = ftell(data->file);
 
-  if (data->runtyp == RUNTYP_OPTIMIZE || 
+  if (data->runtyp == RUNTYP_OPTIMIZE ||
       data->runtyp == RUNTYP_SADPOINT ||
       data->runtyp == RUNTYP_SURFACE) {
     /* Try to advance to the end of the geometry
@@ -1262,9 +1264,9 @@ static int get_final_info(gaussiandata *data) {
   if (data->runtyp == RUNTYP_HESSIAN || data->runtyp == RUNTYP_SURFACE) {
     vmdcon_printf(VMDCON_WARN, "gaussianplugin) this run type is not fully supported\n");
   }
-    
+
   fseek(data->file, filepos, SEEK_SET);
-  return TRUE; 
+  return TRUE;
 }
 
 
@@ -1275,7 +1277,7 @@ static int get_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
   int i,n;
 
   /* we look for:
-                              Input orientation:                          
+                              Input orientation:
  ---------------------------------------------------------------------
  Center     Atomic     Atomic              Coordinates (Angstroms)
  Number     Number      Type              X           Y           Z
@@ -1289,7 +1291,7 @@ static int get_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
   GET_LINE(buffer, file);
   GET_LINE(buffer, file);
   GET_LINE(buffer, file);
-  
+
   for (i=0; i < numatoms; ++i) {
     GET_LINE(buffer, file);
     n = sscanf(buffer,"%*d%d%*d%f%f%f",&atomicnum,&x,&y,&z);
@@ -1301,7 +1303,7 @@ static int get_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
   return TRUE;
 }
 
-/** same as get_coordinates, but we look for coordinates 
+/** same as get_coordinates, but we look for coordinates
     in internal orientation */
 static int get_int_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
   char buffer[BUFSIZ];
@@ -1310,7 +1312,7 @@ static int get_int_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
   int i,n;
 
   /* we look for:
-                              Standard orientation:                          
+                              Standard orientation:
  ---------------------------------------------------------------------
  Center     Atomic     Atomic              Coordinates (Angstroms)
  Number     Number      Type              X           Y           Z
@@ -1324,7 +1326,7 @@ static int get_int_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
   GET_LINE(buffer, file);
   GET_LINE(buffer, file);
   GET_LINE(buffer, file);
-  
+
   for (i=0; i < numatoms; ++i) {
     GET_LINE(buffer, file);
     n = sscanf(buffer,"%*d%d%*d%f%f%f",&atomicnum,&x,&y,&z);
@@ -1340,10 +1342,10 @@ static int get_int_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
 
 /*******************************************************
  *
- * this function reads in the basis set data 
+ * this function reads in the basis set data
  *
  * ******************************************************/
-/* typical data looks like this: 
+/* typical data looks like this:
  ****
    <atomnum> 0
    <shellsymm> <#prims> <scalefactor> 0.0
@@ -1351,7 +1353,7 @@ static int get_int_coordinates(FILE *file, qm_atom_t *atoms, int numatoms) {
    <shellsymm> <#prims> <scalefactor> 0.0
    <#prims> lines of <coeff(i)> <exp(i>
     ...
- ****    
+ ****
 
   1 0
  S   6 1.00       0.000000000000
@@ -1374,7 +1376,7 @@ int get_basis(gaussiandata *data) {
 
   char buffer[BUFSIZ];
   char word[3][MOLFILE_BUFSIZ];
-  int i; 
+  int i;
 
   /* no point in searching through the log file,
    * if we cannot have this information */
@@ -1387,14 +1389,14 @@ int get_basis(gaussiandata *data) {
       GET_LINE(buffer, data->file);
       sscanf(buffer,"%s%s",word[0],word[1]);
       ++i;
-    } while( (strcmp(word[0],"Basis") || 
+    } while( (strcmp(word[0],"Basis") ||
               strcmp(word[1],"set"))  && (i<1000) );
   } else {                                  /* g03 */
     do {
       GET_LINE(buffer, data->file);
       sscanf(buffer,"%s%s",word[0],word[1]);
       ++i;
-    } while( (strcmp(word[0],"AO") || 
+    } while( (strcmp(word[0],"AO") ||
               strcmp(word[1],"basis"))  && (i<1000) );
   }
   if (i>=1000) {
@@ -1403,7 +1405,7 @@ int get_basis(gaussiandata *data) {
     data->have_basis=FALSE;
     return MOLFILE_ERROR;
   }
-  
+
   /* Allocate space for the basis for all atoms */
   /* When the molecule is symmetric the actual number atoms with
    * a basis set could be smaller */
@@ -1414,14 +1416,14 @@ int get_basis(gaussiandata *data) {
     int numread, ishell;
     float scalef;
     shell_t *shell;
-    
+
     /* this line should be '<atomindex> 0'. gaussian allows much more
-     * flexible input (it is a zero terminated list of indices or labels), 
-     * but upon writing to the log files there is exactly one basis set 
+     * flexible input (it is a zero terminated list of indices or labels),
+     * but upon writing to the log files there is exactly one basis set
      * specification per atom. */
     GET_LINE(buffer, data->file);
     if (atoi(buffer) != (i+1) ) {
-      vmdcon_printf(VMDCON_WARN, 
+      vmdcon_printf(VMDCON_WARN,
                     "gaussianplugin) basis set atom counter mismatch: %d vs %s\n",
                     atoi(buffer), i+1);
       SAFE_FREE(data->basis_set);
@@ -1429,7 +1431,7 @@ int get_basis(gaussiandata *data) {
       return MOLFILE_ERROR;
     }
     strncpy(data->basis_set[i].name,data->gbasis,10);
-    
+
     numshells=0;
     shell=NULL;
     GET_LINE(buffer, data->file);
@@ -1441,12 +1443,12 @@ int get_basis(gaussiandata *data) {
 #if GAUSSIAN_DEBUG && GAUSSIAN_BASIS_DEBUG
         vmdcon_printf(VMDCON_INFO, "gaussianplugin) atom: %d, element: %s, shell: %d "
                       "%s-type shell, %d primitives, scalefactor %f\n", i,
-                      get_pte_label(data->initatoms[i].atomicnum), numshells+1, 
+                      get_pte_label(data->initatoms[i].atomicnum), numshells+1,
                       word[0], numprim, scalef);
 #endif
         ;
       } else {
-        vmdcon_printf(VMDCON_WARN, 
+        vmdcon_printf(VMDCON_WARN,
                       "gaussianplugin) basis set parse error: %s",buffer);
         free(data->basis_set);
         data->have_basis=FALSE;
@@ -1489,7 +1491,7 @@ int get_basis(gaussiandata *data) {
     data->basis_set[i].shell = shell;
   }
 
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) Parsed %d uncontracted basis functions with %d shells.\n",
                 data->num_basis_funcs, data->num_shells);
 
@@ -1498,7 +1500,7 @@ int get_basis(gaussiandata *data) {
     int j,k,primcount,shellcount;
     primcount=0;
     shellcount=0;
-    
+
     printf("%-8s (%10s)\n\n", data->initatoms[i].type, data->basis_set[i].name);
     printf("\n");
 
@@ -1526,7 +1528,7 @@ int get_basis(gaussiandata *data) {
 
 /*******************************************************
  *
- * this function reads in the basis set data from 
+ * this function reads in the basis set data from
  * <basis>.gbs or $VMDDIR/basis/<basis>.gbs
  *
  * ******************************************************/
@@ -1537,7 +1539,7 @@ int get_internal_basis(gaussiandata *data) {
   char buffer[BUFSIZ];
   char word[3][MOLFILE_BUFSIZ];
   char filepath[256];
-  int  i,n; 
+  int  i,n;
 
   /* no point in adding a basis set if we already have this information */
   if (data->have_basis) return TRUE;
@@ -1553,7 +1555,7 @@ int get_internal_basis(gaussiandata *data) {
     sprintf(filepath,"%s/basis/%s.gbs",vmddir,data->gbasis);
     fp=fopen(filepath,"rb");
   }
-  
+
   if (fp == NULL) {
     vmdcon_printf(VMDCON_ERROR, "gaussianplugin) failed to read basis set "
                   "from data base file %s\n", filepath);
@@ -1564,7 +1566,7 @@ int get_internal_basis(gaussiandata *data) {
     vmdcon_printf(VMDCON_INFO, "gaussianplugin) reading basis set "
                   "from data base file %s\n", filepath);
   }
-  
+
   /* Allocate space for the basis for all atoms */
   /* When the molecule is symmetric the actual number atoms with
    * a basis set could be smaller */
@@ -1575,14 +1577,14 @@ int get_internal_basis(gaussiandata *data) {
     int numread, ishell;
     float scalef;
     shell_t *shell;
-    
+
     /* search for the characteristic first line starting with '****'. */
     rewind(fp);
     do {
       fgets(buffer, sizeof(buffer), fp);
       sscanf(buffer,"%s%s",word[0],word[1]);
     } while(strcmp(word[0],"****"));
-  
+
     /* search for an entry for the current atom in the format '<name> 0'. */
     do {
       fgets(buffer, sizeof(buffer), fp);
@@ -1592,7 +1594,7 @@ int get_internal_basis(gaussiandata *data) {
         data->num_shells_per_atom=NULL;
         data->have_basis=FALSE;
         vmdcon_printf(VMDCON_ERROR, "gaussianplugin) EOF in data base "
-                      "file %s while looking for element %s.\n", filepath, 
+                      "file %s while looking for element %s.\n", filepath,
                       get_pte_label(data->initatoms[i].atomicnum), buffer);
         fclose(fp);
         return FALSE;
@@ -1600,9 +1602,9 @@ int get_internal_basis(gaussiandata *data) {
       n=sscanf(buffer,"%s%s",word[0],word[1]);
     } while ( (n != 2) || strcmp(word[1],"0") ||
               (strcmp(word[0],get_pte_label(data->initatoms[i].atomicnum))) );
-    
+
     strncpy(data->basis_set[i].name,data->gbasis,sizeof(data->gbasis));
-    
+
     numshells=0;
     shell=NULL;
 
@@ -1613,7 +1615,7 @@ int get_internal_basis(gaussiandata *data) {
       if (strstr(buffer,"****")) break;
       if (ferror(fp)) {
         vmdcon_printf(VMDCON_ERROR, "gaussianplugin) read error in data "
-                      "base file %s while reading basis of element %s.\n", 
+                      "base file %s while reading basis of element %s.\n",
                       filepath, get_pte_label(data->initatoms[i].atomicnum));
         free(data->basis_set);
         data->basis_set=NULL;
@@ -1625,12 +1627,12 @@ int get_internal_basis(gaussiandata *data) {
 #if GAUSSIAN_DEBUG && GAUSSIAN_BASIS_DEBUG
         vmdcon_printf(VMDCON_INFO, "gaussianplugin) atom: %d, element: %s, shell: %d "
                       "%s-type shell, %d primitives, scalefactor %f\n", i,
-                      get_pte_label(data->initatoms[i].atomicnum), numshells+1, 
+                      get_pte_label(data->initatoms[i].atomicnum), numshells+1,
                       word[0], numprim, scalef);
 #endif
         ;
       } else {
-        vmdcon_printf(VMDCON_WARN, 
+        vmdcon_printf(VMDCON_WARN,
                       "gaussianplugin) basis set parse error: %s",buffer);
         free(data->basis_set);
         data->basis_set=NULL;
@@ -1655,7 +1657,7 @@ int get_internal_basis(gaussiandata *data) {
         fgets(buffer, sizeof(buffer), fp);
         if (ferror(fp)) {
           vmdcon_printf(VMDCON_ERROR, "gaussianplugin) read error in data "
-                        "base file %s while reading basis of element %s.\n", 
+                        "base file %s while reading basis of element %s.\n",
                         filepath, get_pte_label(data->initatoms[i].atomicnum));
           free(data->basis_set);
           data->basis_set=NULL;
@@ -1674,16 +1676,16 @@ int get_internal_basis(gaussiandata *data) {
       }
     } while(1);
 
-  
+
     /* store shells in atom */
     data->basis_set[i].numshells = numshells;
     data->basis_set[i].shell = shell;
-    
+
     /* store the total number of basis functions */
     data->num_shells += numshells;
   }
 
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) Parsed %d uncontracted basis functions. \n",
                 data->num_basis_funcs);
 
@@ -1712,7 +1714,7 @@ static int shellsymm_int(char *symm) {
           shell_symmetry = SPD_S_SHELL;
         } else {
           shell_symmetry = UNK_SHELL;
-        } 
+        }
       } else {
         shell_symmetry = UNK_SHELL;
       }
@@ -1720,7 +1722,7 @@ static int shellsymm_int(char *symm) {
     case 'L':
       shell_symmetry = SP_S_SHELL;
       break;
-    case 'M': 
+    case 'M':
       shell_symmetry = SP_P_SHELL;
       break;
     case 'P':
@@ -1754,12 +1756,12 @@ static int fill_basis_arrays(gaussiandata *data) {
   int *shell_symmetry;
 
   /* reserve space for pointer to array containing basis
-   * info, i.e. contraction coeficients and expansion 
+   * info, i.e. contraction coeficients and expansion
    * coefficients; need 2 entries per primitive gaussian, i.e.
    * exponent and contraction coefficient; also,
    * allocate space for the array holding the orbital symmetry
    * information per primitive Gaussian.
-   * Finally, initialize the arrays holding the number of 
+   * Finally, initialize the arrays holding the number of
    * shells per atom and the number of primitives per shell*/
   SAFE_CALLOC(basis,float,2*data->num_basis_funcs);
   SAFE_CALLOC(num_shells_per_atom,int,data->num_basis_atoms);
@@ -1773,7 +1775,7 @@ static int fill_basis_arrays(gaussiandata *data) {
   data->num_prim_per_shell  = num_prim_per_shell;
 
   shellcount=primcount=0;
-  
+
   for(i=0; i<data->num_basis_atoms; i++) {
     num_shells_per_atom[i] = data->basis_set[i].numshells;
 
@@ -1788,7 +1790,7 @@ static int fill_basis_arrays(gaussiandata *data) {
       }
       shellcount++;
     }
-  } 
+  }
   return TRUE;
 }
 
@@ -1801,36 +1803,36 @@ static int get_traj_frame(gaussiandata *data) {
   int i;
   long fpos;
   char buffer[BUFSIZ];
-  char word[MOLFILE_BUFSIZ];  
+  char word[MOLFILE_BUFSIZ];
   buffer[0] = '\0';
   word[0] = '\0';
 
 #if GAUSSIAN_DEBUG
-  vmdcon_printf(VMDCON_INFO, 
-                "gaussianplugin) Timestep %d: =======================\n", 
+  vmdcon_printf(VMDCON_INFO,
+                "gaussianplugin) Timestep %d: =======================\n",
                 data->num_frames_read);
 #endif
 
   fpos=ftell(data->file);       /* XXX: */
   if (!get_coordinates(data->file, data->initatoms, data->numatoms)) {
-    vmdcon_printf(VMDCON_WARN, 
+    vmdcon_printf(VMDCON_WARN,
                   "gaussianplugin) Couldn't find input orientation coordinates"
                   " for timestep %d\n", data->num_frames_read);
-    vmdcon_printf(VMDCON_WARN, 
+    vmdcon_printf(VMDCON_WARN,
                   "gaussianplugin) Trying internal coordinates instead.\n");
 
     fseek(data->file, fpos, SEEK_SET); /* XXX: */
     if(!get_int_coordinates(data->file, data->initatoms, data->numatoms)) {
-      vmdcon_printf(VMDCON_ERROR, 
-                    "gaussianplugin) Couldn't find any coordinates.\n", 
+      vmdcon_printf(VMDCON_ERROR,
+                    "gaussianplugin) Couldn't find any coordinates.\n",
                     data->num_frames_read);
       return FALSE;
-    } 
+    }
   }
-  
+
   /* allocate more memory for the timestep array */
-  data->qm_timestep = 
-    (qm_timestep_t *)realloc(data->qm_timestep, 
+  data->qm_timestep =
+    (qm_timestep_t *)realloc(data->qm_timestep,
                              (data->num_frames_read+1)*sizeof(qm_timestep_t));
 
   /* get a convenient pointer to the current qm timestep and clear it. */
@@ -1847,7 +1849,7 @@ static int get_traj_frame(gaussiandata *data) {
     get_basis(data);
     get_internal_basis(data);
   }
-  
+
   SAFE_CALLOC(cur_qm_ts->wave,qm_wavefunction_t,cur_qm_ts->numwave);
   for (i=0; i < cur_qm_ts->numwave; ++i) {
     cur_qm_ts->wave[i].idtag = i;
@@ -1857,7 +1859,7 @@ static int get_traj_frame(gaussiandata *data) {
     SAFE_CALLOC(cur_qm_ts->wave[i].wave_coeffs,float,
                 data->wavef_size*data->wavef_size);
   }
-  
+
   /* Try to read wavefunction and orbital energies */
   if (get_wavefunction(data, cur_qm_ts) == FALSE) {
     vmdcon_printf(VMDCON_WARN, "gaussianplugin) No wavefunction present for timestep %d\n", data->num_frames_read);
@@ -1917,7 +1919,7 @@ static int find_traj_end(gaussiandata *data) {
     } else if (strstr(buffer, "Convergence failure -- run terminated.")) {
       data->opt_status = STATUS_SCF_NOT_CONV;
       return FALSE;
-    } 
+    }
   }
 
   /* We didn't find any of the regular key strings,
@@ -1926,7 +1928,7 @@ static int find_traj_end(gaussiandata *data) {
   data->opt_status = STATUS_BROKEN_OFF;
 
   fseek(data->file, filepos, SEEK_SET);
-  return FALSE;  
+  return FALSE;
 }
 
 /*********************************************************
@@ -1944,7 +1946,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
   int orbital_counter;
   int i, j, num_values, num_orbs, *orb_idx;
   qm_wavefunction_t *wf;
-  
+
   i=j=num_values=num_orbs=orbital_counter=0;
 
   buffer[0] = '\0';
@@ -1958,7 +1960,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
 
   /* no point in searching for wavefunction info, if there cannot be any. */
   if (!data->have_wavefunction) return FALSE;
-  
+
   /* default values. to be changed if needed */
   wf->type = MOLFILE_WAVE_CANON;
   wf->spin = SPIN_ALPHA;
@@ -1966,7 +1968,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
   orb_erg = wf->orb_energies;
   orb_occ = wf->occupancies;
   orb_idx = wf->orb_indices;
-  
+
   /*
    * the following output requires  IOP(6/7=3) in the route section.
    *
@@ -2019,9 +2021,9 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
     GET_LINE(buffer, data->file);           /* orbital index */
     num_orbs = sscanf(buffer,"%s%s%s%s%s",word[0],word[1],word[2],word[3],word[4]);
     /* XXX: we need to keep track of these numbers, since the wavefunction may
-            have only a subset of orbitals, and we want to know where the 
-            frontier orbitals are located. with the similarity reordering 
-            in VMD this information will be essential, if somebody compares 
+            have only a subset of orbitals, and we want to know where the
+            frontier orbitals are located. with the similarity reordering
+            in VMD this information will be essential, if somebody compares
             the .log file and the orbital rep. */
 
     GET_LINE(buffer, data->file); /* occupied or virtual orbital (+ orbital symm) */
@@ -2030,12 +2032,12 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
       j=strlen(word[i]);
       orb_occ[i] = (word[i][j-1] == 'O') ? 1.0f : 0.0f;
     }
-    
+
     GET_LINE(buffer, data->file); /* eigenvalues */
     sscanf(buffer,"%*s%*s%s%s%s%s%s",word[0],word[1],word[2],word[3],word[4]);
-    for (i=0; i<num_orbs; i++) 
+    for (i=0; i<num_orbs; i++)
       orb_erg[i] = atof(word[i]);
-      
+
     /* step counters and pointers */
     orb_erg += num_orbs;
     orb_occ += num_orbs;
@@ -2044,10 +2046,10 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
     for (i=0; i<data->num_orbitals; i++) {
       int xexp=0, yexp=0, zexp=0;
 
-      /* read in the wavefunction coefficients for up 
+      /* read in the wavefunction coefficients for up
        * to 5 orbitals at a time line by line */
       GET_LINE(buffer, data->file);
-      num_values = sscanf(buffer+12,"%4s%s%s%s%s%s", 
+      num_values = sscanf(buffer+12,"%4s%s%s%s%s%s",
                           word[0], word[1], word[2],
                           word[3], word[4], word[5]);
 
@@ -2064,7 +2066,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
           case 'Z':
             zexp++;
             break;
-            /* if we have pure d/f-functions the nomenclature changes to 
+            /* if we have pure d/f-functions the nomenclature changes to
              * 'D 0', 'D-1', 'D+1', 'D-2', 'D+2' */
           case '+': /* fallthrough */
           case '-': /* fallthrough */
@@ -2087,13 +2089,13 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
       data->angular_momentum[3*i+1] = yexp;
       data->angular_momentum[3*i+2] = zexp;
 #if GAUSSIAN_DEBUG && GAUSSIAN_BASIS_DEBUG && 0
-      vmdcon_printf(VMDCON_INFO,"%s:%d orbitals %d/%d/%d/%d  shell %d/%d/%s: %d %d %d\n", 
-                    __FILE__, __LINE__, i, data->num_orbitals, num_orbs, orbital_counter, 
+      vmdcon_printf(VMDCON_INFO,"%s:%d orbitals %d/%d/%d/%d  shell %d/%d/%s: %d %d %d\n",
+                    __FILE__, __LINE__, i, data->num_orbitals, num_orbs, orbital_counter,
                     i, data->wavef_size, word[0], xexp, yexp, zexp);
 #endif
 
-      /* each orbital has data->wavef_size entries when converted to 
-       * cartesian spherical harmonics. to ease conversion we use this 
+      /* each orbital has data->wavef_size entries when converted to
+       * cartesian spherical harmonics. to ease conversion we use this
        * number as offset when storing them in groups. */
       for (j=0 ; j<num_orbs; j++) {
         wf->wave_coeffs[(orbital_counter+j)*data->wavef_size+i] = atof(&word[j+1][0]);
@@ -2104,7 +2106,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts)
 
   /* store the number of orbitals read in */
   wf->num_orbitals = orbital_counter;
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) Number of orbitals scanned: %d \n",
                 orbital_counter);
   return TRUE;
@@ -2122,14 +2124,14 @@ static int get_population(gaussiandata *data, qm_timestep_t *ts) {
 
 
   /* Read Mulliken charges if present */
-  ts->mulliken_charges = 
+  ts->mulliken_charges =
     (double *)calloc(data->num_basis_atoms, sizeof(double));
 
   if (!ts->mulliken_charges) {
-    PRINTERR; 
+    PRINTERR;
     return FALSE;
   }
-  
+
   for (i=0; i<data->num_basis_atoms; i++) {
     int n;
     float mullpop, mullcharge, lowpop, lowcharge;
@@ -2145,7 +2147,7 @@ static int get_population(gaussiandata *data, qm_timestep_t *ts) {
   data->have_mulliken = TRUE;
 
 #if GAUSSIAN_DEBUG
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "gaussianplugin) Number of orbitals scanned: %d \n",
                 orbital_counter);
 #endif
@@ -2157,7 +2159,7 @@ static int get_population(gaussiandata *data, qm_timestep_t *ts) {
 
 /*************************************************************
  *
- * plugin registration 
+ * plugin registration
  *
  **************************************************************/
 
@@ -2208,7 +2210,7 @@ int main(int argc, char *argv[]) {
   molfile_qm_timestep_metadata_t qm_ts_metadata;
   molfile_qm_metadata_t qm_metadata;
   molfile_qm_timestep_t qm_ts;
-    
+
   void *v;
 
   while (--argc) {
@@ -2225,7 +2227,7 @@ int main(int argc, char *argv[]) {
 
     i = 0;
     timestep.coords = (float *)malloc(3*sizeof(float)*numatoms);
-    
+
     while (1) {
       memset(&ts_metadata, 0, sizeof(molfile_timestep_metadata_t));
       read_timestep_metadata(v, &ts_metadata);
@@ -2259,4 +2261,6 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
+#endif
+
 #endif

@@ -1,3 +1,5 @@
+#if false
+
 /***************************************************************************
  *cr
  *cr            (C) Copyright 1995-2016 The Board of Trustees of the
@@ -12,7 +14,7 @@
  *          CPMD Output File Reader Plugin
  *
  * This plugin allows VMD to read some CPMD output files.
- * So far only PROPERTIES and specially modified 
+ * So far only PROPERTIES and specially modified
  * MOLECULAR DYNAMICS BO runs.
  *
  * ********************************************************/
@@ -29,7 +31,7 @@
 
 #define THISPLUGIN plugin
 #include "vmdconio.h"
- 
+
 /*
  * Error reporting macro for use in DEBUG mode
  */
@@ -90,11 +92,11 @@
 #define STATUS_TOO_MANY_STEPS 2
 #define STATUS_BROKEN_OFF     3
 
-static const char *runtypes[] = { 
-  "(unknown)", "ENERGY", "OPTIMIZE", "SADPOINT", "HESSIAN", 
+static const char *runtypes[] = {
+  "(unknown)", "ENERGY", "OPTIMIZE", "SADPOINT", "HESSIAN",
   "SURFACE", "DYNAMICS", "PROPERTIES", NULL};
 
-static const char *scftypes[] = { 
+static const char *scftypes[] = {
   "(unknown)", "RHF", "UHF", "ROHF", "GVB", "MCSCF", "FF", NULL };
 
 
@@ -102,11 +104,11 @@ static const char *scftypes[] = {
 /* declaration/documentation of internal (static) functions */
 /* ######################################################## */
 
-/** Top level CPMD log file parser. Responsible 
+/** Top level CPMD log file parser. Responsible
  *  for static, i.e. non-trajectory information. */
 static int parse_static_data(gaussiandata *, int *);
 
-/** Check if the current run is an actual CPMD run; 
+/** Check if the current run is an actual CPMD run;
  *  returns true/false */
 static int have_cpmd(gaussiandata *);
 
@@ -128,7 +130,7 @@ static int read_first_frame(gaussiandata *);
  * the trajectory information */
 static int get_traj_frame(gaussiandata *);
 
-/* count the number of readable QM timesteps 
+/* count the number of readable QM timesteps
  * and collect other information about the
  * total trajectory. */
 static int find_traj_end(gaussiandata *);
@@ -164,12 +166,12 @@ static void fix_fortran_exp(char *string) {
  * read_cpmdlog_metadata() and read_cpmdlog_rundata().
  *
  * *************************************************************/
-static void *open_cpmdlog_read(const char *filename, 
+static void *open_cpmdlog_read(const char *filename,
                   const char *filetype, int *natoms) {
 
   FILE *fd;
   gaussiandata *data;
-  
+
   /* open the input file */
   fd = fopen(filename, "rb");
   if (fd == NULL) {
@@ -180,13 +182,13 @@ static void *open_cpmdlog_read(const char *filename,
   /* set up main data structure */
   data = (gaussiandata *) calloc(1,sizeof(gaussiandata));
   if (data == NULL) return NULL;
-  
+
   data->runtyp = RUNTYP_UNKNOWN;
   data->scftyp = SCFTYP_UNKNOWN;
   data->file = fd;
   data->file_name = strdup(filename);
 
-  /* check if the file is CPMD format; 
+  /* check if the file is CPMD format;
    * if yes parse it, if not exit */
   if (have_cpmd(data)==TRUE) {
     /* if we're dealing with an unsupported CPMD
@@ -200,7 +202,7 @@ static void *open_cpmdlog_read(const char *filename,
       return NULL;
     }
 
-    /* get the non-trajectory information from the log file */    
+    /* get the non-trajectory information from the log file */
     if (parse_static_data(data, natoms) == FALSE) {
       free(data);
       return NULL;
@@ -216,28 +218,28 @@ static void *open_cpmdlog_read(const char *filename,
 
 
 /************************************************************
- * 
+ *
  * Provide VMD with the structure of the molecule, i.e the
  * atoms coordinates names, etc.
  *
  *************************************************************/
-static int read_cpmdlog_structure(void *mydata, int *optflags, 
-                      molfile_atom_t *atoms) 
+static int read_cpmdlog_structure(void *mydata, int *optflags,
+                      molfile_atom_t *atoms)
 {
   gaussiandata *data = (gaussiandata *)mydata;
   qm_atom_t *cur_atom;
   molfile_atom_t *atom;
   int i = 0;
- 
+
   /* optional data from PTE */
   *optflags = MOLFILE_ATOMICNUMBER | MOLFILE_MASS | MOLFILE_RADIUS;
 
-  if (data->have_mulliken) 
+  if (data->have_mulliken)
     *optflags |= MOLFILE_CHARGE;
 
   /* all the information I need has already been read in
-   * via the initial scan and I simply need to copy 
-   * everything from the temporary arrays into the 
+   * via the initial scan and I simply need to copy
+   * everything from the temporary arrays into the
    * proper VMD arrays. */
 
   /* get initial pointer for atom array */
@@ -245,23 +247,23 @@ static int read_cpmdlog_structure(void *mydata, int *optflags,
 
   for(i=0; i<data->numatoms; i++) {
     atom = atoms+i;
-    strncpy(atom->name, cur_atom->type, sizeof(atom->name)); 
+    strncpy(atom->name, cur_atom->type, sizeof(atom->name));
     strncpy(atom->type, get_pte_label(cur_atom->atomicnum), sizeof(atom->type));
-    strncpy(atom->resname,"QM", sizeof(atom->resname)); 
+    strncpy(atom->resname,"QM", sizeof(atom->resname));
     atom->resid = 1;
     atom->chain[0] = '\0';
     atom->segid[0] = '\0';
     atom->atomicnumber = cur_atom->atomicnum;
     atom->radius = get_pte_vdw_radius(cur_atom->atomicnum);
     /* XXX; check on isotopes. should be possible to read. */
-    atom->mass   = get_pte_mass(cur_atom->atomicnum);  
+    atom->mass   = get_pte_mass(cur_atom->atomicnum);
     if (data->have_mulliken)
       atom->charge = data->qm_timestep->mulliken_charges[i];
 
     cur_atom++;
   }
- 
-  return MOLFILE_SUCCESS; 
+
+  return MOLFILE_SUCCESS;
 }
 
 
@@ -272,7 +274,7 @@ static int read_cpmdlog_structure(void *mydata, int *optflags,
  * available
  *
  *****************************************************/
-static int read_cpmdlog_metadata(void *mydata, 
+static int read_cpmdlog_metadata(void *mydata,
     molfile_qm_metadata_t *gaussian_metadata) {
 
   gaussiandata *data = (gaussiandata *)mydata;
@@ -284,7 +286,7 @@ static int read_cpmdlog_metadata(void *mydata,
   /* orbital data */
   gaussian_metadata->num_basis_funcs = data->num_basis_funcs;
   gaussian_metadata->num_shells      = data->num_shells;
-  gaussian_metadata->wavef_size      = data->wavef_size;  
+  gaussian_metadata->wavef_size      = data->wavef_size;
 
 #if vmdplugin_ABIVERSION > 11
   /* charges */
@@ -299,13 +301,13 @@ static int read_cpmdlog_metadata(void *mydata,
 
 
 /******************************************************
- * 
+ *
  * Provide VMD with the static (i.e. non-trajectory)
  * data. That means we are filling the molfile_plugin
  * data structures.
  *
  ******************************************************/
-static int read_cpmdlog_rundata(void *mydata, 
+static int read_cpmdlog_rundata(void *mydata,
                                molfile_qm_t *qm_data) {
 
   gaussiandata *data = (gaussiandata *)mydata;
@@ -316,7 +318,7 @@ static int read_cpmdlog_rundata(void *mydata,
 
   /* fill in molfile_qm_sysinfo_t */
   sys_data->nproc = data->nproc;
-  sys_data->memory = data->memory; 
+  sys_data->memory = data->memory;
   sys_data->runtype = data->runtyp;
   sys_data->scftype = data->scftyp;
   sys_data->totalcharge = data->totalcharge;
@@ -327,7 +329,7 @@ static int read_cpmdlog_rundata(void *mydata,
 
   strncpy(sys_data->basis_string, data->basis_string,
           sizeof(sys_data->basis_string));
-  
+
   strncpy(sys_data->runtitle, data->runtitle, sizeof(sys_data->runtitle));
   strncpy(sys_data->geometry, data->geometry, sizeof(sys_data->geometry));
   strncpy(sys_data->version_string, data->version_string,
@@ -339,12 +341,12 @@ static int read_cpmdlog_rundata(void *mydata,
     for (i=0; i<data->numatoms; i++) {
       basis_data->num_shells_per_atom[i] = data->num_shells_per_atom[i];
     }
-    
+
     for (i=0; i<data->num_shells; i++) {
       basis_data->num_prim_per_shell[i] = data->num_prim_per_shell[i];
       basis_data->shell_symmetry[i] = data->shell_symmetry[i];
     }
-    
+
     for (i=0; i<2*data->num_basis_funcs; i++) {
       basis_data->basis[i] = data->basis[i];
     }
@@ -354,7 +356,7 @@ static int read_cpmdlog_rundata(void *mydata,
     }
   }
 #endif
- 
+
   return MOLFILE_SUCCESS;
 }
 
@@ -362,7 +364,7 @@ static int read_cpmdlog_rundata(void *mydata,
 #if vmdplugin_ABIVERSION > 11
 
 /***********************************************************
- * Provide non-QM metadata for next timestep. 
+ * Provide non-QM metadata for next timestep.
  * Required by the plugin interface.
  ***********************************************************/
 static int read_timestep_metadata(void *mydata,
@@ -374,7 +376,7 @@ static int read_timestep_metadata(void *mydata,
 }
 
 /***********************************************************
- * Provide QM metadata for next timestep. 
+ * Provide QM metadata for next timestep.
  * This actually triggers reading the entire next timestep
  * since we have to parse the whole timestep anyway in order
  * to get the metadata. So we store the read data locally
@@ -387,9 +389,9 @@ static int read_qm_timestep_metadata(void *mydata,
   gaussiandata *data = (gaussiandata *)mydata;
 
 #if CPMDLOG_DEBUG
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "cpmdlogplugin) read_qm_timestep_metadata(): %d/%d/%d\n",
-                data->num_frames, 
+                data->num_frames,
                 data->num_frames_read,
                 data->num_frames_sent);
 #endif
@@ -402,7 +404,7 @@ static int read_qm_timestep_metadata(void *mydata,
   } else if (data->num_frames_read < data->num_frames) {
 #if CPMDLOG_DEBUG
     vmdcon_printf(VMDCON_INFO,
-                  "cpmdlogplugin) Probing timestep %d\n", 
+                  "cpmdlogplugin) Probing timestep %d\n",
                   data->num_frames_read);
 #endif
     have = get_traj_frame(data);
@@ -413,12 +415,12 @@ static int read_qm_timestep_metadata(void *mydata,
     qm_timestep_t *cur_qm_ts = data->qm_timestep+data->num_frames_sent;
 #if CPMDLOG_DEBUG
     vmdcon_printf(VMDCON_INFO,
-                  "cpmdlogplugin) Approved timestep %d\n", 
+                  "cpmdlogplugin) Approved timestep %d\n",
                   data->num_frames_sent);
 #endif
     meta->num_scfiter  = 0;
 
-    for (i=0; (i<MAX_NUM_WAVE && i<cur_qm_ts->numwave); i++) { 
+    for (i=0; (i<MAX_NUM_WAVE && i<cur_qm_ts->numwave); i++) {
 #if CPMDLOG_DEBUG
       vmdcon_printf(VMDCON_INFO,
                     "cpmdlogplugin) num_orbitals_per_wavef[%d/%d]=%d\n",
@@ -450,9 +452,9 @@ static int read_qm_timestep_metadata(void *mydata,
  * into the one's provided by VMD.
  *
  ***********************************************************/
-static int read_timestep(void *mydata, int natoms, 
+static int read_timestep(void *mydata, int natoms,
        molfile_timestep_t *ts, molfile_qm_metadata_t *qm_metadata,
-			 molfile_qm_timestep_t *qm_ts) 
+			 molfile_qm_timestep_t *qm_ts)
 {
   gaussiandata *data = (gaussiandata *)mydata;
   qm_atom_t *cur_atom;
@@ -463,21 +465,21 @@ static int read_timestep(void *mydata, int natoms,
 
 #if CPMDLOG_DEBUG
   vmdcon_printf(VMDCON_INFO,
-                "cpmdlogplugin) Sending timestep %d\n", 
+                "cpmdlogplugin) Sending timestep %d\n",
                 data->num_frames_sent);
 #endif
 
   /* initialize pointer for temporary arrays */
-  cur_atom = data->initatoms; 
-  
+  cur_atom = data->initatoms;
+
   /* copy the coordinates */
   for(i=0; i<natoms; i++) {
     ts->coords[3*i  ] = cur_atom->x;
     ts->coords[3*i+1] = cur_atom->y;
-    ts->coords[3*i+2] = cur_atom->z; 
+    ts->coords[3*i+2] = cur_atom->z;
     cur_atom++;
-  }    
-  
+  }
+
   /* get a convenient pointer to the current qm timestep */
   cur_qm_ts = data->qm_timestep+data->num_frames_sent;
 
@@ -512,7 +514,7 @@ static int read_timestep(void *mydata, int natoms,
 
 
 
-/** Clean up when done and free all memory 
+/** Clean up when done and free all memory
  *  to avoid memory leaks.
  *
  **********************************************************/
@@ -541,7 +543,7 @@ static void close_cpmdlog_read(void *mydata) {
         free(data->basis_set[i].shell[j].prim);
       }
       free(data->basis_set[i].shell);
-    } 
+    }
     free(data->basis_set);
   }
 
@@ -557,7 +559,7 @@ static void close_cpmdlog_read(void *mydata) {
     free(data->qm_timestep[i].wave);
   }
   free(data->qm_timestep);
-  
+
   free(data);
 }
 
@@ -577,12 +579,12 @@ static int find_traj_end(gaussiandata *data) {
 
     if (strstr(buffer, "PROJECTION COORDINATES")) {
       data->num_frames++;
-    } 
+    }
   }
   data->opt_status = STATUS_UNKNOWN;
 
   fseek(data->file, filepos, SEEK_SET);
-  return FALSE;  
+  return FALSE;
 }
 
 
@@ -590,7 +592,7 @@ static int get_final_info(gaussiandata *data) {
   long filepos;
   filepos = ftell(data->file);
 
-  if (data->runtyp == RUNTYP_OPTIMIZE || 
+  if (data->runtyp == RUNTYP_OPTIMIZE ||
       data->runtyp == RUNTYP_DYNAMICS) {
     /* Try to advance to the end of the geometry
      * optimization or MD. If no regular end is found we
@@ -605,18 +607,18 @@ static int get_final_info(gaussiandata *data) {
 #endif
 
   fseek(data->file, filepos, SEEK_SET);
-  return TRUE; 
+  return TRUE;
 }
 
 
 
 /********************************************************
  *
- * Main gaussian log file parser responsible for static,  
+ * Main gaussian log file parser responsible for static,
  * i.e. non-trajectory information.
  *
  ********************************************************/
-static int parse_static_data(gaussiandata *data, int *natoms) 
+static int parse_static_data(gaussiandata *data, int *natoms)
 {
   char buffer[BUFSIZ];
   char word[4][MOLFILE_BUFSIZ];
@@ -625,18 +627,18 @@ static int parse_static_data(gaussiandata *data, int *natoms)
   int  numatoms, numstates, numelectrons, totalcharge;
 
   buffer[0] = '\0';
-  
+
   /* set some defaults */
   data->scftyp = SCFTYP_RHF;
   data->runtyp = RUNTYP_UNKNOWN;
   numelectrons = 0;
   data->totalcharge = 0;
   data->multiplicity = 1;
-  data->have_basis=FALSE;       
-  /* CPMD never outputs basis set info, so we use 
+  data->have_basis=FALSE;
+  /* CPMD never outputs basis set info, so we use
    * VSTO-6G unless overridden by environment */
   vmdbasis = getenv("VMDDEFBASISSET");
-  if (vmdbasis == NULL) 
+  if (vmdbasis == NULL)
     vmdbasis = "VSTO-6G";
 
   strncpy(data->gbasis, vmdbasis, sizeof(data->gbasis));
@@ -649,7 +651,7 @@ static int parse_static_data(gaussiandata *data, int *natoms)
     GET_LINE(buffer, data->file);
     sscanf(buffer,"%s%s%s",word[0],word[1],word[2]);
     if ( (strcmp(word[0],"CALCULATE" ) == 0 &&
-          strcmp(word[1],"SOME"      ) == 0 && 
+          strcmp(word[1],"SOME"      ) == 0 &&
           strcmp(word[2],"PROPERTIES") == 0 ) ) {
       data->runtyp = RUNTYP_PROPERTIES;
       break;
@@ -661,7 +663,7 @@ static int parse_static_data(gaussiandata *data, int *natoms)
                  strcmp(word[2],"DYNAMICS") == 0 ) ) {
       data->runtyp = RUNTYP_DYNAMICS;
       break;
-      
+
     }
   }
 
@@ -672,14 +674,14 @@ static int parse_static_data(gaussiandata *data, int *natoms)
                   "not supported by this plugin.\n", runtypes[data->runtyp]);
     return FALSE;
   }
-  
+
   if ((data->runtyp != RUNTYP_PROPERTIES) && (data->version < 31303)) {
     vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) Run-type: %s is currently "
-                  "not supported for outputs of this CPMD version.\n", 
+                  "not supported for outputs of this CPMD version.\n",
                   runtypes[data->runtyp]);
     return FALSE;
   }
-  
+
   /* scavange for more setup information */
   do {
 
@@ -691,7 +693,7 @@ static int parse_static_data(gaussiandata *data, int *natoms)
 
     /* atom types and initial coordinates */
     if ( (strstr(word[0],"************") != 0 &&
-          strcmp(word[1],"ATOMS"       ) == 0 && 
+          strcmp(word[1],"ATOMS"       ) == 0 &&
           strstr(word[2],"************") != 0 ) ) {
       /* NR TYPE X(bohr) Y(bohr) Z(bohr) MBL */
       GET_LINE(buffer, data->file);
@@ -700,20 +702,20 @@ static int parse_static_data(gaussiandata *data, int *natoms)
       data->initatoms=NULL;
       while (1) {
         qm_atom_t *atm;
-      
+
         GET_LINE(buffer, data->file);
         /* end of ATOMS block */
         if (strstr(buffer, "*************************") != NULL)
           break;
-        
+
         data->initatoms=realloc(data->initatoms,(numatoms+1)*sizeof(qm_atom_t));
         atm = data->initatoms + numatoms;
-        
+
         n=sscanf(buffer,"%*d%s%g%g%g", atm->type, &atm->x, &atm->y, &atm->z);
         if (n != 4) {
           free(data->initatoms);
           data->initatoms=NULL;
-          vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) Failed to parse initial" 
+          vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) Failed to parse initial"
                         " coordinates. Stopping.\n");
           return FALSE;
         }
@@ -725,7 +727,7 @@ static int parse_static_data(gaussiandata *data, int *natoms)
       };
       data->numatoms = numatoms;
       *natoms = numatoms;
-      
+
     } else if ( (strcmp(word[0],"NUMBER" ) == 0 &&
                  strcmp(word[2],"STATES:") == 0 ) ) {
       numstates=atoi(word[3]);
@@ -734,29 +736,29 @@ static int parse_static_data(gaussiandata *data, int *natoms)
                  strcmp(word[2],"ELECTRONS:") == 0 ) ) {
       numelectrons=(int) (atof(word[3]) + 0.5); /* XXX */
       data->num_electrons = numelectrons;
-      
+
     } else if (strcmp(word[0],"CHARGE:" ) == 0 ) {
       totalcharge =(int) (atof(word[1]) + 0.5); /* XXX */
       data->totalcharge = totalcharge;
-      
+
     } else if (strcmp(word[0],"OCCUPATION" ) == 0 ) {
       ; /* XXX. */
-      
+
     } else if ( (strcmp(word[0],"CELL" ) == 0 &&
                  strcmp(word[1],"DIMENSION:") == 0 ) ) {
-      n=sscanf(buffer,"%*s%*s%g%g%g%g%g%g",data->initcell,data->initcell+1, 
+      n=sscanf(buffer,"%*s%*s%g%g%g%g%g%g",data->initcell,data->initcell+1,
                data->initcell+2,data->initcell+3,data->initcell+4,data->initcell+5);
-      
-    /*  
+
+    /*
         PROJECT WAVEFUNCTION ON ATOMIC ORBITALS EVERY           10 STEPS
     */
     } else if ( (strcmp(word[0],"PROJECT" ) == 0 &&
                  strcmp(word[1],"WAVEFUNCTION") == 0 ) ) {
         data->have_wavefunction=1;
     /*
-      DIPOLE MOMENT CALCULATION 
+      DIPOLE MOMENT CALCULATION
       STORE DIPOLE MOMENTS EVERY                          10 STEPS
-      WANNIER FUNCTION DYNAMICS 
+      WANNIER FUNCTION DYNAMICS
     */
     } else if ( (strcmp(word[0],"WANNIER" ) == 0 &&
                  strcmp(word[1],"FUNCTION") == 0 ) ) {
@@ -764,10 +766,10 @@ static int parse_static_data(gaussiandata *data, int *natoms)
             data->have_wavefunction=2;
         }
     }
-  } while( strcmp(word[0],"INITIALIZATION") || 
+  } while( strcmp(word[0],"INITIALIZATION") ||
            strcmp(word[1],"TIME:") );
 
-  if (numstates >= numelectrons) 
+  if (numstates >= numelectrons)
     data->scftyp = SCFTYP_UHF;
 
   switch (data->scftyp) {
@@ -782,25 +784,25 @@ static int parse_static_data(gaussiandata *data, int *natoms)
     default:
       break;
   }
-  
-  vmdcon_printf(VMDCON_INFO, 
-                "cpmdlogplugin) Atoms: %d   Charge: %d   Multiplicity: %d\n", 
+
+  vmdcon_printf(VMDCON_INFO,
+                "cpmdlogplugin) Atoms: %d   Charge: %d   Multiplicity: %d\n",
                 data->numatoms, data->totalcharge, data->multiplicity);
 
   vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) Run-type: %s, SCF-type: %s\n",
                 runtypes[data->runtyp], scftypes[data->scftyp]);
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "cpmdlogplugin) using %s basis set.\n", data->basis_string);
 
   read_first_frame(data);
 
   get_final_info(data);
-  
+
   vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) found %d QM data frames.\n", data->num_frames);
 #if CPMDLOG_DEBUG
-  vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) num_frames_read = %d\n", 
+  vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) num_frames_read = %d\n",
                 data->num_frames_read);
-  vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) num_frames_sent = %d\n", 
+  vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) num_frames_sent = %d\n",
                 data->num_frames_sent);
 #endif
   return TRUE;
@@ -812,17 +814,17 @@ static int parse_static_data(gaussiandata *data, int *natoms)
  * actually a CPMD file and gathers its version code.
  *
  **********************************************************/
-static int have_cpmd(gaussiandata *data) 
+static int have_cpmd(gaussiandata *data)
 {
   char word[4][MOLFILE_BUFSIZ];
   char buffer[BUFSIZ];
   char *ptr;
   int i = 0;
- 
+
   buffer[0] = '\0';
   for (i=0; i<3; i++) word[i][0] = '\0';
 
-  /* check if the file is CPMD format 
+  /* check if the file is CPMD format
    * CPMD output typically begins with:
    *  'PROGRAM CPMD STARTED'
    */
@@ -831,12 +833,12 @@ static int have_cpmd(gaussiandata *data)
     GET_LINE(buffer, data->file);
     sscanf(buffer,"%s%s%s",word[0],word[1],word[2]);
     ++i;
-  } while( (strcmp(word[0],"PROGRAM") || 
-            strcmp(word[1],"CPMD") || 
+  } while( (strcmp(word[0],"PROGRAM") ||
+            strcmp(word[1],"CPMD") ||
             strcmp(word[2],"STARTED")) && (i<100) );
   if (i>=100) return FALSE;
   vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) Analyzing CPMD log file: %s\n",data->file_name);
-  
+
   /* now read on until we find the block of text with encoded version
    * number and compile date. */
   i=0; /* check only the next 100 lines */
@@ -855,8 +857,8 @@ static int have_cpmd(gaussiandata *data)
   data->version += 100*atoi(ptr);
   ptr=strtok(NULL,"._");
   data->version += atoi(ptr);
-  
-  vmdcon_printf(VMDCON_INFO, 
+
+  vmdcon_printf(VMDCON_INFO,
                 "cpmdlogplugin) CPMD version = %s  (Version code: %d)\n",
                 data->version_string, data->version);
   return TRUE;
@@ -864,30 +866,30 @@ static int have_cpmd(gaussiandata *data)
 
 /*! read coordinates for old-style population analysis */
 static int read_first_frame(gaussiandata *data) {
-  
+
   data->qm_timestep = NULL;
 
   /* Read the basis set. */
   get_internal_basis(data);
 
-  /* the angular momentum is populated in get_wavefunction 
+  /* the angular momentum is populated in get_wavefunction
    * which is called by get_traj_frame(). We have obtained
    * the array size wavef_size already from the basis set
    * statistics */
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "cpmdlogplugin) Reserving storage for %d cartesian atomic basis functions\n",
                 data->wavef_size);
   SAFE_CALLOC(data->angular_momentum,int,3*data->wavef_size);
 
   if (data->version < 31303) {
 
-    vmdcon_printf(VMDCON_WARN, 
+    vmdcon_printf(VMDCON_WARN,
                   "cpmdlogplugin) ##################################"
                   "####################################\n");
-    vmdcon_printf(VMDCON_WARN, 
+    vmdcon_printf(VMDCON_WARN,
                   "cpmdlogplugin) This version of CPMD does not print "
                   "the actual coordinates on properties runs.\n");
-    vmdcon_printf(VMDCON_WARN, 
+    vmdcon_printf(VMDCON_WARN,
                   "cpmdlogplugin) Using initial coordinates from the "
                   "input file instead.\n");
     vmdcon_printf(VMDCON_WARN,
@@ -897,7 +899,7 @@ static int read_first_frame(gaussiandata *data) {
                   "set new [atomselect [mol new GEOMETRY.xyz] all]\n"
                   "$cur set {x y z} [$new get {x y z}]\n"
                   "$cur delete; mol delete [$new molid]; $new delete\n\n");
-    vmdcon_printf(VMDCON_WARN, 
+    vmdcon_printf(VMDCON_WARN,
                   "cpmdlogplugin) ##################################"
                   "####################################\n");
     /* Try to read wavefunction and orbital energies */
@@ -916,14 +918,14 @@ static int read_first_frame(gaussiandata *data) {
      * that prints them right before each projection. */
     data->num_frames = 0;
   }
-  
+
   return TRUE;
 }
 
 
 /*******************************************************
  *
- * this function reads in the basis set data from 
+ * this function reads in the basis set data from
  * <basis>.gbs or $VMDDIR/basis/<basis>.gbs
  *
  * XXX: this is the same function as in gaussianplugin
@@ -935,7 +937,7 @@ int get_internal_basis(gaussiandata *data) {
   char buffer[BUFSIZ];
   char word[3][MOLFILE_BUFSIZ];
   char filepath[256];
-  int  i,n, wavef_size; 
+  int  i,n, wavef_size;
 
   /* no point in adding a basis set if we already have this information */
   if (data->have_basis) return TRUE;
@@ -964,7 +966,7 @@ int get_internal_basis(gaussiandata *data) {
                   "from data base file %s\n", filepath);
   }
   data->wavef_size=0;
-  
+
   /* Allocate space for the basis for all atoms */
   /* When the molecule is symmetric the actual number atoms with
    * a basis set could be smaller */
@@ -975,14 +977,14 @@ int get_internal_basis(gaussiandata *data) {
     int numread, ishell;
     float scalef;
     shell_t *shell;
-    
+
     /* search for the characteristic first line starting with '****'. */
     rewind(fp);
     do {
       fgets(buffer, sizeof(buffer), fp);
       sscanf(buffer,"%s%s",word[0],word[1]);
     } while(strcmp(word[0],"****"));
-  
+
     /* search for an entry for the current atom in the format '<name> 0'. */
     do {
       fgets(buffer, sizeof(buffer), fp);
@@ -992,7 +994,7 @@ int get_internal_basis(gaussiandata *data) {
         data->num_shells_per_atom=NULL;
         data->have_basis=FALSE;
         vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) EOF in data base "
-                      "file %s while looking for element %s.\n", filepath, 
+                      "file %s while looking for element %s.\n", filepath,
                       get_pte_label(data->initatoms[i].atomicnum), buffer);
         fclose(fp);
         return FALSE;
@@ -1000,9 +1002,9 @@ int get_internal_basis(gaussiandata *data) {
       n=sscanf(buffer,"%s%s",word[0],word[1]);
     } while ( (n != 2) || strcmp(word[1],"0") ||
               (strcmp(word[0],get_pte_label(data->initatoms[i].atomicnum))) );
-    
+
     strncpy(data->basis_set[i].name,data->gbasis,sizeof(data->gbasis));
-    
+
     numshells=0;
     shell=NULL;
 
@@ -1013,7 +1015,7 @@ int get_internal_basis(gaussiandata *data) {
       if (strstr(buffer,"****")) break;
       if (ferror(fp)) {
         vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) read error in data "
-                      "base file %s while reading basis of element %s.\n", 
+                      "base file %s while reading basis of element %s.\n",
                       filepath, get_pte_label(data->initatoms[i].atomicnum));
         free(data->basis_set);
         data->basis_set=NULL;
@@ -1025,12 +1027,12 @@ int get_internal_basis(gaussiandata *data) {
 #if CPMDLOG_DEBUG && CPMDLOG_BASIS_DEBUG
         vmdcon_printf(VMDCON_INFO, "cpmdlogplugin) atom: %d, element: %s, shell: %d "
                       "%s-type shell, %d primitives, scalefactor %f\n", i,
-                      get_pte_label(data->initatoms[i].atomicnum), numshells+1, 
+                      get_pte_label(data->initatoms[i].atomicnum), numshells+1,
                       word[0], numprim, scalef);
 #endif
         ;
       } else {
-        vmdcon_printf(VMDCON_ERROR, 
+        vmdcon_printf(VMDCON_ERROR,
                       "cpmdlogplugin) basis set parse error: %s",buffer);
         free(data->basis_set);
         data->basis_set=NULL;
@@ -1067,7 +1069,7 @@ int get_internal_basis(gaussiandata *data) {
         default:
           break;
       }
-      
+
       if (shell[ishell].symmetry == SP_S_SHELL) {
         ++numshells;
         shell=realloc(shell,numshells*sizeof(shell_t));
@@ -1081,7 +1083,7 @@ int get_internal_basis(gaussiandata *data) {
         fgets(buffer, sizeof(buffer), fp);
         if (ferror(fp)) {
           vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) read error in data "
-                        "base file %s while reading basis of element %s.\n", 
+                        "base file %s while reading basis of element %s.\n",
                         filepath, get_pte_label(data->initatoms[i].atomicnum));
           free(data->basis_set);
           data->basis_set=NULL;
@@ -1100,17 +1102,17 @@ int get_internal_basis(gaussiandata *data) {
       }
     } while(1);
 
-  
+
     /* store shells in atom */
     data->basis_set[i].numshells = numshells;
     data->basis_set[i].shell = shell;
-    
+
     /* store the total number of basis functions */
     data->num_shells += numshells;
   }
-  
-  vmdcon_printf(VMDCON_INFO, 
-                "cpmdlogplugin) Parsed %d uncontracted basis functions. \n", 
+
+  vmdcon_printf(VMDCON_INFO,
+                "cpmdlogplugin) Parsed %d uncontracted basis functions. \n",
                 data->num_basis_funcs);
 
   /* allocate and populate flat arrays needed for molfileplugin */
@@ -1137,7 +1139,7 @@ static int shellsymm_int(char *symm) {
           shell_symmetry = SPD_S_SHELL;
         } else {
           shell_symmetry = UNK_SHELL;
-        } 
+        }
       } else {
         shell_symmetry = UNK_SHELL;
       }
@@ -1145,7 +1147,7 @@ static int shellsymm_int(char *symm) {
     case 'L':
       shell_symmetry = SP_S_SHELL;
       break;
-    case 'M': 
+    case 'M':
       shell_symmetry = SP_P_SHELL;
       break;
     case 'P':
@@ -1180,18 +1182,18 @@ static int fill_basis_arrays(gaussiandata *data) {
   int *shell_symmetry;
 
   /* reserve space for pointer to array containing basis
-   * info, i.e. contraction coeficients and expansion 
+   * info, i.e. contraction coeficients and expansion
    * coefficients; need 2 entries per primitive gaussian, i.e.
    * exponent and contraction coefficient; also,
    * allocate space for the array holding the orbital symmetry
    * information per primitive gaussian.
-   * Finally, initialize the arrays holding the number of 
+   * Finally, initialize the arrays holding the number of
    * shells per atom and the number of primitives per shell*/
   SAFE_CALLOC(basis,float,2*data->num_basis_funcs);
   SAFE_CALLOC(shell_symmetry,int,data->num_shells);
   SAFE_CALLOC(num_shells_per_atom,int,data->numatoms);
   SAFE_CALLOC(num_prim_per_shell,int,data->num_shells);
-  
+
   /* place pointers into struct gaussiandata */
   data->basis = basis;
   data->shell_symmetry = shell_symmetry;
@@ -1212,7 +1214,7 @@ static int fill_basis_arrays(gaussiandata *data) {
       }
       shellcount++;
     }
-  } 
+  }
   return TRUE;
 }
 
@@ -1223,7 +1225,7 @@ static int get_traj_frame(gaussiandata *data) {
   char buffer[BUFSIZ];
   char word[4][MOLFILE_BUFSIZ];
   int n,i;
-  
+
 
   buffer[0] = '\0';
   word[0][0] = '\0';
@@ -1232,14 +1234,14 @@ static int get_traj_frame(gaussiandata *data) {
   word[3][0] = '\0';
 
 #if CPMDLOG_DEBUG
-  vmdcon_printf(VMDCON_INFO, 
-                "cpmdlogplugin) Timestep %d: ====\n", 
+  vmdcon_printf(VMDCON_INFO,
+                "cpmdlogplugin) Timestep %d: ====\n",
                 data->num_frames_read);
 #endif
 
   /* allocate more memory for the timestep array */
-  data->qm_timestep = 
-    (qm_timestep_t *)realloc(data->qm_timestep, 
+  data->qm_timestep =
+    (qm_timestep_t *)realloc(data->qm_timestep,
                              (data->num_frames_read+1)*sizeof(qm_timestep_t));
 
   /* get a convenient pointer to the current qm timestep */
@@ -1251,14 +1253,14 @@ static int get_traj_frame(gaussiandata *data) {
 
     GET_LINE(buffer,data->file);
     n = sscanf(buffer,"%s%s%s%s",word[0],word[1],word[2],word[3]);
-    
+
     /* empty or uninteresting line */
     if (n < 3) continue;
 
     /* coordinates relevant for projection.
      * this needs a CPMD version > 3.13.2
  ********************* PROJECTION COORDINATES ********************
-   NR   TYPE        X(bohr)        Y(bohr)        Z(bohr)    
+   NR   TYPE        X(bohr)        Y(bohr)        Z(bohr)
     1      B       8.536664      10.525423      10.202766
     2      B      10.195353       8.831898      12.528872
     3      H      10.467571       8.964546       9.816927
@@ -1270,8 +1272,8 @@ static int get_traj_frame(gaussiandata *data) {
  ****************************************************************
  */
     if ( (strstr(word[0],"************") != 0 &&
-          strcmp(word[1],"PROJECTION"  ) == 0 && 
-          strcmp(word[2],"COORDINATES" ) == 0 && 
+          strcmp(word[1],"PROJECTION"  ) == 0 &&
+          strcmp(word[2],"COORDINATES" ) == 0 &&
           strstr(word[3],"************") != 0 ) ) {
 
       /* NR TYPE X(bohr) Y(bohr) Z(bohr) */
@@ -1284,12 +1286,12 @@ static int get_traj_frame(gaussiandata *data) {
 
       for (i=0; i < data->numatoms; ++i) {
         qm_atom_t *atm;
-      
+
         GET_LINE(buffer, data->file);
         atm = data->initatoms + i;
-        
+
         n=sscanf(buffer,"%*d%*s%g%g%g", &atm->x, &atm->y, &atm->z);
-        
+
         if (n != 3) {
           vmdcon_printf(VMDCON_ERROR, "cpmdlogplugin) Failed to parse "
                         "projection coordinates. Stopping.\n");
@@ -1314,7 +1316,7 @@ static int get_traj_frame(gaussiandata *data) {
           /* XXX: add flag to ignore wfn */
       }
       if (data->have_wavefunction == 2) {
-#if 0          
+#if 0
           /* Try to read localized wavefunctions  */
           /* XXX: used offset or something. */
           if (get_wavefunction(data, cur_qm_ts+XXX) == FALSE) {
@@ -1333,9 +1335,9 @@ static int get_traj_frame(gaussiandata *data) {
       }
 #endif
       buffer[0] = '\0';
-      
+
     } else if ( strcmp(word[0],"*"     ) == 0 &&
-                strcmp(word[1],"TIMING") == 0 && 
+                strcmp(word[1],"TIMING") == 0 &&
                 strcmp(word[2],"*"     ) == 0 ) {
       data->end_of_trajectory=FALSE;
       break;
@@ -1359,7 +1361,7 @@ static int get_traj_frame(gaussiandata *data) {
  * punched at the end of the log file
  *
  **********************************************************/
-static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts, 
+static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
                             qm_wavefunction_t *wf)
 {
   float *orbital_energies;
@@ -1379,7 +1381,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
 
   wf->type = MOLFILE_WAVE_CANON;
   wf->spin = SPIN_ALPHA;
-  
+
   buffer[0] = '\0';
   for (i=0; i <= ORBSPERBLOCK ; i++) word[i][0] = '\0';
   /*
@@ -1405,8 +1407,8 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
   /* Reserve space for arrays storing wavefunction and orbital
    * energies. For the wavefunction we reserve the number
    * of alpha orbitals squared, for unrestricted twice as much.
-   * Accordingly, for the energies I use the number of A orbitals 
-   * In gaussian the number of alpha and beta orbitals is always 
+   * Accordingly, for the energies I use the number of A orbitals
+   * In gaussian the number of alpha and beta orbitals is always
    * the same. */
 
 #if 0
@@ -1429,11 +1431,11 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
 
     /* we don't have orbital energies here, but we
      * can use it for the completenes parameter. */
-    for(i=0; i<num_orbs; i++) 
+    for(i=0; i<num_orbs; i++)
       *(orbital_energies+i) = atof(word[i]);
 
     GET_LINE(buffer, data->file);           /* occupation */
-             
+
     /* step orbital energy pointer */
     orbital_energies = orbital_energies+num_orbs;
     orbital_counter += num_orbs;
@@ -1442,11 +1444,11 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
     for (i=0; i<data->wavef_size; i++) {
       int xexp=0, yexp=0, zexp=0;
 
-      /* read in the wavefunction coefficients for up 
+      /* read in the wavefunction coefficients for up
        * to 8 orbitals at a time line by line */
       GET_LINE(buffer, data->file);
-      num_values = sscanf(buffer+7,"%4s%s%s%s%s%s%s%s%s", word[0], 
-                          word[1], word[2],word[3], word[4], 
+      num_values = sscanf(buffer+7,"%4s%s%s%s%s%s%s%s%s", word[0],
+                          word[1], word[2],word[3], word[4],
                           word[5], word[6], word[7], word[8]);
 
       /* handle magenetic quantum number. in cartesian basis the
@@ -1462,7 +1464,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
           case 'Z':
             zexp++;
             break;
-            /* if we have pure d/f-functions the nomenclature changes to 
+            /* if we have pure d/f-functions the nomenclature changes to
              * 'D 0', 'D-1', 'D+1', 'D-2', 'D+2' */
           case '+': /* fallthrough */
           case '-': /* fallthrough */
@@ -1486,13 +1488,13 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
       data->angular_momentum[3*i+1] = yexp;
       data->angular_momentum[3*i+2] = zexp;
 #if CPMDLOG_DEBUG && CPMDLOG_BASIS_DEBUG
-      fprintf(stderr,"%s:%d orbital %d/%d  function %d/%s: %d %d %d\n", 
-              __FILE__, __LINE__, num_orbs, orbital_counter, 
+      fprintf(stderr,"%s:%d orbital %d/%d  function %d/%s: %d %d %d\n",
+              __FILE__, __LINE__, num_orbs, orbital_counter,
               i, word[0], xexp, yexp, zexp);
 #endif
 
-      /* each orbital has data->wavef_size entries, 
-       * hence we have to use this number as offset when storing 
+      /* each orbital has data->wavef_size entries,
+       * hence we have to use this number as offset when storing
        * them in groups of five */
       for (j=0 ; j<num_values-1; j++) {
         wave_function[j*data->wavef_size+i] = atof(word[j+1]);
@@ -1511,7 +1513,7 @@ static int get_wavefunction(gaussiandata *data, qm_timestep_t *ts,
 #endif
 
 #if CPMDLOG_DEBUG
-  vmdcon_printf(VMDCON_INFO, 
+  vmdcon_printf(VMDCON_INFO,
                 "cpmdlogplugin) Number of orbitals scanned: %d \n",
                 orbital_counter);
 #endif
@@ -1530,14 +1532,14 @@ static int get_population(gaussiandata *data, qm_timestep_t *ts) {
 
 
   /* Read Mulliken charges if present */
-  ts->mulliken_charges = 
+  ts->mulliken_charges =
     (double *)calloc(data->numatoms, sizeof(double));
 
   if (!ts->mulliken_charges) {
-    PRINTERR; 
+    PRINTERR;
     return FALSE;
   }
-  
+
   for (i=0; i<data->numatoms; i++) {
     int n;
     float mullpop, mullcharge, lowpop, lowcharge;
@@ -1556,7 +1558,7 @@ static int get_population(gaussiandata *data, qm_timestep_t *ts) {
 
 /*************************************************************
  *
- * plugin registration 
+ * plugin registration
  *
  **************************************************************/
 
@@ -1610,7 +1612,7 @@ int main(int argc, char *argv[]) {
   molfile_qm_timestep_metadata_t qm_ts_metadata;
   molfile_qm_metadata_t qm_metadata;
   molfile_qm_timestep_t qm_ts;
- 
+
   void *v;
 
   while (--argc) {
@@ -1628,7 +1630,7 @@ int main(int argc, char *argv[]) {
     i = 0;
     timestep.coords = (float *)malloc(3*sizeof(float)*numatoms);
 
-    
+
     while (1) {
       memset(&ts_metadata, 0, sizeof(molfile_timestep_metadata_t));
       read_timestep_metadata(v, &ts_metadata);
@@ -1662,5 +1664,8 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
+
+#endif
+
 
 #endif
