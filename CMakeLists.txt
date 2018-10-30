@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(molfiles C CXX)
 
+if (POLICY CMP0063)
+    # Use of `CXX_VISIBILITY_PRESET` and `VISIBILITY_INLINES_HIDDEN` in OBJECT
+    # libraries
+    cmake_policy(SET CMP0063 NEW)
+endif()
+
 set(MOLFILES_SRC "")
 foreach(plugin ${VMD_MOLFILE_PLUGINS})
     FILE(GLOB PLUGIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/${plugin}*.c*)
