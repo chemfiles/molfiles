@@ -16,8 +16,8 @@
  ***************************************************************************/
 
 /* This is a plugin that will read input from a MOLDEN
-** generated output file 
-** some more details will go here soon 
+** generated output file
+** some more details will go here soon
 ** NOTE: The current version of the plugin relies
 ** on the fact that the [Atom] field comes before
 ** the [Geometries] field */
@@ -54,12 +54,12 @@
 #define GET_LINE(x,y) if (!fgets(x, sizeof(x), y)) return FALSE
 
 
-/* I could use a flag already present in qmdata_t to 
- * indicate a trajectory, but I'm using moldendata_t 
- * to demonstrate the use of 
+/* I could use a flag already present in qmdata_t to
+ * indicate a trajectory, but I'm using moldendata_t
+ * to demonstrate the use of
  * void *format_specific_data;
- * in qmdata_t as a means to store data specific to 
- * the plugin. 
+ * in qmdata_t as a means to store data specific to
+ * the plugin.
  */
 typedef struct {
   long filepos_atoms;   /* [ATOMS] section */
@@ -107,12 +107,12 @@ static void *open_molden_read(const char *filename,
   FILE *fd;
   qmdata_t *data = NULL;
   moldendata_t *moldendata;
-  char buffer[1024];
-  char keystring[20];
+  char buffer[1024] = {0};
+  char keystring[20] = {0};
 
   fd = fopen(filename, "rb");
   if (!fd) return NULL;
-  
+
   /* allocate memory for main QM data structure */
   data = init_qmdata();
   if (!data) return NULL;
@@ -173,10 +173,10 @@ static void *open_molden_read(const char *filename,
         return NULL;
       }
 
-      /* start counting the atoms; 
+      /* start counting the atoms;
        * read until I hit the first line that starts with a "["
-       * bracket */      
-      (*natoms) = 0; 
+       * bracket */
+      (*natoms) = 0;
       s = fgets(buffer, 1024, fd);
 
       /* Here we assume that the [ATOMS] section goes
@@ -248,7 +248,7 @@ static void *open_molden_read(const char *filename,
     }
 
   };
-  
+
   return data;
 }
 
@@ -266,8 +266,8 @@ static void *open_molden_read(const char *filename,
  * will have to be deduced from the atom name.
  *
  *********************************************************/
-static int read_molden_structure(void *mydata, int *optflags, 
-                                 molfile_atom_t *atoms) 
+static int read_molden_structure(void *mydata, int *optflags,
+                                 molfile_atom_t *atoms)
 {
   int i;
   char buffer[1024];
@@ -284,7 +284,7 @@ static int read_molden_structure(void *mydata, int *optflags,
   *optflags = MOLFILE_ATOMICNUMBER;
 
   /* [ATOMS] section */
-  if (moldendata->filepos_atoms) { 
+  if (moldendata->filepos_atoms) {
     float unitfac = 1.f;
 
     /* If the units are given in AU we have to convert them.       */
@@ -293,7 +293,7 @@ static int read_molden_structure(void *mydata, int *optflags,
         !strcmp(moldendata->units, "(AU)")) {
       unitfac = BOHR_TO_ANGS;
     }
-    
+
     /* Jump to beginning of [ATOMS] section. */
     fseek(data->file, moldendata->filepos_atoms, SEEK_SET);
 
@@ -302,14 +302,14 @@ static int read_molden_structure(void *mydata, int *optflags,
     for (i=0; i<data->numatoms; i++) {
       float x,y,z;
       atom = atoms+i;
-      
+
       if (!fgets(buffer,1024,data->file)) return MOLFILE_ERROR;
-      
+
       sscanf(buffer,"%s %d %d %f %f %f", atname, &num,
              &atomicnum, &x, &y, &z);
 
       /* populate data structure for VMD */
-      strncpy(atom->name, atname,     sizeof(atom->name)); 
+      strncpy(atom->name, atname,     sizeof(atom->name));
       strncpy(atom->type, atom->name, sizeof(atom->type));
       atom->atomicnumber = atomicnum;
       atom->resname[0] = '\0';
@@ -343,7 +343,7 @@ static int read_molden_structure(void *mydata, int *optflags,
       sscanf(buffer,"%s %*f %*f %*f", atname);
 
       strncpy(atom->type, atname, sizeof(atom->type));
-      strncpy(atom->name, atname, sizeof(atom->name)); 
+      strncpy(atom->name, atname, sizeof(atom->name));
       atom->atomicnumber = get_pte_idx_from_string(atname);
       atom->resname[0] = '\0';
       atom->resid = 1;
@@ -358,8 +358,8 @@ static int read_molden_structure(void *mydata, int *optflags,
 
   printf("Sorry, could not obtain structure information \n");
   printf("from either the [ATOMS] or [GEOMETRIES] section! \n");
-  printf("Please check your MOLDEN output file! \n"); 
-  return MOLFILE_ERROR; 
+  printf("Please check your MOLDEN output file! \n");
+  return MOLFILE_ERROR;
 }
 
 
@@ -390,7 +390,7 @@ static int read_geom_block(qmdata_t *data) {
 
 /***********************************************************
  *
- * Provide non-QM metadata for next timestep. 
+ * Provide non-QM metadata for next timestep.
  * Required by the plugin interface.
  *
  ***********************************************************/
@@ -422,7 +422,7 @@ static int read_qm_timestep_metadata(void *mydata,
   /* Can't send metadata if only coordinates were read */
   if (moldendata->coordsonly) return MOLFILE_ERROR;
 
-  /* Count the number of cartesian basis functions in 
+  /* Count the number of cartesian basis functions in
      the basis set */
   if (data->num_frames_sent == data->num_frames-1) {
     int i;
@@ -432,7 +432,7 @@ static int read_qm_timestep_metadata(void *mydata,
 
     /* get a pointer to the current qm timestep */
     cur_ts = data->qm_timestep;
-    
+
     for (i=0; (i<MOLFILE_MAXWAVEPERTS && i<cur_ts->numwave); i++) {
       meta->num_orbitals_per_wavef[i] = cur_ts->wave[i].num_orbitals;
       meta->has_occup_per_wavef[i]    = cur_ts->wave[i].has_occup;
@@ -455,7 +455,7 @@ static int read_qm_timestep_metadata(void *mydata,
  * Provides VMD with the data of the next timestep.
  *
  ***********************************************************/
-static int read_timestep(void *mydata, int natoms, 
+static int read_timestep(void *mydata, int natoms,
        molfile_timestep_t *ts, molfile_qm_metadata_t *qm_metadata,
                          molfile_qm_timestep_t *qm_ts) {
   int i;
@@ -481,7 +481,7 @@ static int read_timestep(void *mydata, int natoms,
   for (i=0; i<natoms; i++) {
     ts->coords[3*i  ] = data->atoms[i].x;
     ts->coords[3*i+1] = data->atoms[i].y;
-    ts->coords[3*i+2] = data->atoms[i].z; 
+    ts->coords[3*i+2] = data->atoms[i].z;
   }
 
   /*printf("moldenplugin) Sent frame %d\n", data->num_frames_sent); */
@@ -505,7 +505,7 @@ static int read_timestep(void *mydata, int natoms,
         qm_ts->wave[i].multiplicity = wave->mult;
         qm_ts->wave[i].energy       = wave->energy;
         strncpy(qm_ts->wave[i].info, wave->info, MOLFILE_BUFSIZ);
-        
+
         if (wave->wave_coeffs) {
           memcpy(qm_ts->wave[i].wave_coeffs, wave->wave_coeffs,
                  wave->num_orbitals*data->wavef_size*sizeof(float));
@@ -525,7 +525,7 @@ static int read_timestep(void *mydata, int natoms,
 
   return MOLFILE_SUCCESS;
 }
-  
+
 
 /*****************************************************
  *
@@ -539,7 +539,7 @@ static int read_timestep(void *mydata, int natoms,
  * read_molden_rundata().
  *
  *****************************************************/
-static int read_molden_metadata(void *mydata, 
+static int read_molden_metadata(void *mydata,
     molfile_qm_metadata_t *metadata) {
 
   qmdata_t *data;
@@ -564,13 +564,13 @@ static int read_molden_metadata(void *mydata,
 
   if (!moldendata->coordsonly) {
     /* Read the basis set */
-    if (!get_basis(data)) return MOLFILE_ERROR; 
+    if (!get_basis(data)) return MOLFILE_ERROR;
 
     /* orbital + basis set data */
     metadata->num_basis_funcs = data->num_basis_funcs;
     metadata->num_basis_atoms = data->num_basis_atoms;
     metadata->num_shells      = data->num_shells;
-    metadata->wavef_size      = data->wavef_size;  
+    metadata->wavef_size      = data->wavef_size;
   }
 
   return MOLFILE_SUCCESS;
@@ -578,13 +578,13 @@ static int read_molden_metadata(void *mydata,
 
 
 /******************************************************
- * 
+ *
  * Provide VMD with the static (i.e. non-trajectory)
  * data. That means we are filling the molfile_plugin
  * data structures.
  *
  ******************************************************/
-static int read_molden_rundata(void *mydata, 
+static int read_molden_rundata(void *mydata,
                                molfile_qm_t *qm_data) {
   qmdata_t *data = (qmdata_t *)mydata;
   int i;
@@ -608,17 +608,17 @@ static int read_molden_rundata(void *mydata,
       basis_data->num_shells_per_atom[i] = data->num_shells_per_atom[i];
       basis_data->atomic_number[i] = data->atomicnum_per_basisatom[i];
     }
-    
+
     for (i=0; i<data->num_shells; i++) {
       basis_data->num_prim_per_shell[i] = data->num_prim_per_shell[i];
       basis_data->shell_types[i] = data->shell_types[i];
     }
-    
+
     for (i=0; i<2*data->num_basis_funcs; i++) {
       basis_data->basis[i] = data->basis[i];
     }
 
-    /* If we have MOs in the file we must provide the 
+    /* If we have MOs in the file we must provide the
      * angular momentum exponents */
     if (data->angular_momentum) {
       for (i=0; i<3*data->wavef_size; i++) {
@@ -666,7 +666,7 @@ static void close_molden_read(void *mydata) {
         free(data->basis_set[i].shell[j].prim);
       }
       free(data->basis_set[i].shell);
-    } 
+    }
     free(data->basis_set);
   }
 
@@ -697,8 +697,8 @@ static void close_molden_read(void *mydata) {
 
 
 /******************************************************
- * 
- * Format specification of the basis-set consisting of 
+ *
+ * Format specification of the basis-set consisting of
  * contracted Gaussian Type Orbitals.
  *
  * [GTO]
@@ -716,7 +716,7 @@ static void close_molden_read(void *mydata) {
  * recognized shell_labels: s, p, d, f, sp, g
  *
  * For 'sp' shells two contraction coefficients must be given,
- * for both s and p functions. 
+ * for both s and p functions.
  * The 0 on the shell_number line and the 1.00 on the
  * shell_label line are no longer functional and can be
  * ignored.
@@ -746,12 +746,12 @@ static void close_molden_read(void *mydata) {
  *   0.2331360000E+00  0.6789135305E+00
  *  ...
  *
- * qmdata_t provides hierarchical data structures for 
- * the basis set which are convenient for parsing. 
+ * qmdata_t provides hierarchical data structures for
+ * the basis set which are convenient for parsing.
  * The molfile_plugin interface, however, requires flat
  * arrays, so after reading is done we have to populate
  * the according arrays using fill_basis_arrays().
- * 
+ *
  *******************************************************/
 static int get_basis(qmdata_t *data) {
   char buffer[1024];
@@ -772,7 +772,7 @@ static int get_basis(qmdata_t *data) {
 
   /* Place file pointer on line after the [GTO] keyword. */
   fseek(data->file, moldendata->filepos_gto, SEEK_SET);
- 
+
   /* Allocate memory for the basis of all atoms. */
   ALLOCATE(data->basis_set, basis_atom_t, data->numatoms);
 
@@ -790,10 +790,10 @@ static int get_basis(qmdata_t *data) {
       shell_t *shell, *shell2=NULL;
 
       if (!fgets(buffer,1024,data->file)) return FALSE;
-      
+
       /* Empty line signifies beginning of next atom */
       if (!strlen(trimleft(buffer))) break;
-      
+
       /* Get shell type (s, p, d, f, g, sp) and # of primitives */
       sscanf(buffer,"%s %d %*f", shelltype, &numprims);
 
@@ -817,7 +817,7 @@ static int get_basis(qmdata_t *data) {
       shell->type     = shelltype_int(shelltype);
       shell->prim     = (prim_t*)calloc(numprims, sizeof(prim_t));
 
-      /* If this is an SP-shell we have to add as separate 
+      /* If this is an SP-shell we have to add as separate
        * S-shell and P-shell. */
       if (!strcasecmp(shelltype, "sp")) {
         shell->type      = SP_S_SHELL;
@@ -833,11 +833,11 @@ static int get_basis(qmdata_t *data) {
         double expon=0.f, coeff1, coeff2=0.f;
         if (!fgets(buffer,1024,data->file)) return FALSE;
 
-	/* MOLDEN writes the basis set coefficients using Fortran style notation 
-	 * where the exponential character is 'D' instead of 'E'. Other packages 
-	 * adhere to C-style notation. Unfortunately sscanf() won't recognize 
-	 * Fortran-style numbers. Therefore we have to read the line as string 
-	 * first, convert the numbers by replacing the 'D' and then extract the 
+	/* MOLDEN writes the basis set coefficients using Fortran style notation
+	 * where the exponential character is 'D' instead of 'E'. Other packages
+	 * adhere to C-style notation. Unfortunately sscanf() won't recognize
+	 * Fortran-style numbers. Therefore we have to read the line as string
+	 * first, convert the numbers by replacing the 'D' and then extract the
 	 * floats using sscanf(). */
 	fpexpftoc(buffer);
 	nr = sscanf(buffer,"%lf %lf %lf", &expon, &coeff1, &coeff2);
@@ -886,7 +886,7 @@ static int get_basis(qmdata_t *data) {
   /* allocate and populate flat arrays needed for molfileplugin */
   fill_basis_arrays(data);
 
-  /* Count the number of cartesian basis functions in 
+  /* Count the number of cartesian basis functions in
    * the basis set */
   data->wavef_size = 0;
   for (i=0; i<data->num_shells; i++) {
@@ -911,7 +911,7 @@ static int get_basis(qmdata_t *data) {
     }
   }
 
-  /* If we have MOs in the file we must provide the 
+  /* If we have MOs in the file we must provide the
    * angular momentum exponents.
    * The order of P, D, F en G functions is as follows:
 
@@ -1018,12 +1018,12 @@ static int fill_basis_arrays(qmdata_t *data) {
   data->num_basis_funcs = primcount;
 
   /* reserve space for pointer to array containing basis
-   * info, i.e. contraction coeficients and expansion 
+   * info, i.e. contraction coeficients and expansion
    * coefficients; need 2 entries per basis function, i.e.
    * exponent and contraction coefficient; also,
    * allocate space for the array holding the orbital symmetry
    * information per primitive Gaussian.
-   * Finally, initialize the arrays holding the number of 
+   * Finally, initialize the arrays holding the number of
    * shells per atom and the number of primitives per shell*/
   ALLOCATE(basis,                   float, 2*primcount);
   ALLOCATE(shell_types,             int,   data->num_shells);
@@ -1059,7 +1059,7 @@ static int fill_basis_arrays(qmdata_t *data) {
       }
       shellcount++;
     }
-  } 
+  }
 
   return TRUE;
 }
@@ -1081,7 +1081,7 @@ static int shelltype_int(char *type) {
   else if (!strcasecmp(type, "f"))  shelltype = F_SHELL;
   else if (!strcasecmp(type, "g"))  shelltype = G_SHELL;
   else shelltype = UNK_SHELL;
-  
+
   return shelltype;
 }
 
@@ -1118,7 +1118,7 @@ static int count_orbitals(qmdata_t *data) {
     printf("moldenplugin) Couldn't find keyword 'Spin' in [MO] section!\n");
     return FALSE;
   }
- 
+
   nr = fscanf(data->file, " Spin= %s\n", spin);
   eatline(data->file, 1);
 
@@ -1131,11 +1131,11 @@ static int count_orbitals(qmdata_t *data) {
 
   /* For pruned AOs, with only non-zero coeffs, this is redundant */
   /*
-  if (data->wavef_size && 
+  if (data->wavef_size &&
       data->wavef_size != num_wave_coeff) {
     printf("moldenplugin) Mismatch between # wavefunction coefficients (%d)\n",
            num_wave_coeff);
-    printf("moldenplugin) and # cart. basis functions (%d)in basis set!\n", 
+    printf("moldenplugin) and # cart. basis functions (%d)in basis set!\n",
            data->wavef_size);
     return FALSE;
   }
@@ -1175,7 +1175,7 @@ static int count_orbitals(qmdata_t *data) {
     nr += fscanf(data->file, " Spin= %s\n", spin);
     nr += fscanf(data->file, " Occup= %f\n", &occu);
 
-    if (nr!=3 || toupper(spin[0])!='A') 
+    if (nr!=3 || toupper(spin[0])!='A')
       break;
   }
   //printf("found %d MOs!\n",wave->num_orbitals);
@@ -1231,7 +1231,7 @@ static int read_molecular_orbitals(qmdata_t *data) {
   printf("moldenplugin) num_orbitals = %d\n", wave->num_orbitals);
   printf("moldenplugin) num_wave     = %d\n", data->qm_timestep->numwave);
   */
-  
+
 
   /* Read wavefunction coefficients for spin alpha */
   if (!read_wave_coeffs(data->file, wave)) return FALSE;
@@ -1272,11 +1272,11 @@ static int read_wave_coeffs(FILE *file, qm_wavefunction_t *wave) {
       if (!fgets(buffer,1024,file)) return FALSE;
       nr = sscanf(buffer,"%d %f", &AOid, &wf_coeff);
       wave_coeffs[i*wave->num_coeffs+AOid-1] = wf_coeff;
-      
+
       // DEBUG
       //printf("moldenplugin) %d,%d: %d %f\n", i, AOid-1, AOid, wave_coeffs[i*wave->num_coeffs+AOid-1]);
       nr2 = sscanf(buffer, "%s", keystring);
-      if(!strcmp(keystring,"Ene=")||nr2==-1) 
+      if(!strcmp(keystring,"Ene=")||nr2==-1)
         break;
 
       if (nr==0) {
@@ -1291,7 +1291,7 @@ static int read_wave_coeffs(FILE *file, qm_wavefunction_t *wave) {
 
 /*************************************************************
  *
- * plugin registration 
+ * plugin registration
  *
  **************************************************************/
 static molfile_plugin_t plugin;
@@ -1329,4 +1329,3 @@ VMDPLUGIN_API int VMDPLUGIN_register(void *v, vmdplugin_register_cb cb) {
 VMDPLUGIN_API int VMDPLUGIN_fini() {
   return VMDPLUGIN_SUCCESS;
 }
-
