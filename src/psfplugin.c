@@ -16,6 +16,7 @@
  ***************************************************************************/
 
 #include "molfile_plugin.h"
+#include "vmdconio.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -123,7 +124,7 @@ static int get_psf_atom(FILE *f, char *name, char *atype, char *resname,
   }
 
   if (strlen(inbuf) < 50) {
-    fprintf(stderr, "Line too short in psf file: \n%s\n", inbuf);
+    vmdcon_printf(VMDCON_ERROR, "Line too short in psf file: \n%s\n", inbuf);
     return -1;
   }
 
@@ -137,8 +138,8 @@ static int get_psf_atom(FILE *f, char *name, char *atype, char *resname,
     insertion[0] = ' ';  insertion[1] = '\0';
     rcnt = sscanf(residstr, "%d%c%c", resid, insertion, &trash);
     if (cnt != 8 || rcnt < 1 || rcnt > 2) {
-      printf("psfplugin) Failed to parse atom line in NAMD PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse atom line in NAMD PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
   } else if (charmmdrude == 1 || charmmext == 1) {
@@ -151,8 +152,8 @@ static int get_psf_atom(FILE *f, char *name, char *atype, char *resname,
          inbuf[28] != ' ' ||
          inbuf[37] != ' ' ||
          inbuf[46] != ' ' ) {
-      printf("psfplugin) Failed to parse atom line in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse atom line in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
 
@@ -168,8 +169,8 @@ static int get_psf_atom(FILE *f, char *name, char *atype, char *resname,
     }
 
     if ( inbuf[51+xplorshift] != ' ' ) {
-      printf("psfplugin) Failed to parse atom line in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse atom line in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     
@@ -193,14 +194,14 @@ static int get_psf_atom(FILE *f, char *name, char *atype, char *resname,
     intbuf[0] = '\0';
     rdbuf += strnwscpy_shift(intbuf, rdbuf, 8, 10);
     if ( rdbuf[8] != ' ' ) {
-      printf("psfplugin) Failed to parse atom index in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse atom index in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     rdbuf += strnwscpy_shift(segname, rdbuf+9, 4, 7);
     if ( rdbuf[13] != ' ' ) {
-      printf("psfplugin) Failed to parse segname in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse segname in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     intbuf[0] = '\0';
@@ -208,26 +209,26 @@ static int get_psf_atom(FILE *f, char *name, char *atype, char *resname,
     insertion[0] = ' ';  insertion[1] = '\0';
     sscanf(intbuf, "%d%c", resid, insertion);
     if ( rdbuf[18] != ' ' ) {
-      printf("psfplugin) Failed to parse resid in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse resid in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     rdbuf += strnwscpy_shift(resname, rdbuf+19, 4, 7);
     if ( rdbuf[23] != ' ' ) {
-      printf("psfplugin) Failed to parse resname in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse resname in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     rdbuf += strnwscpy_shift(name, rdbuf+24, 4, 7);
     if ( rdbuf[28] != ' ' ) {
-      printf("psfplugin) Failed to parse atom name in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse atom name in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     rdbuf += strnwscpy_shift(atype, rdbuf+29, 4, 7);
     if ( rdbuf[33] != ' ' ) {
-      printf("psfplugin) Failed to parse atom type in PSF file:\n");
-      printf("psfplugin)   '%s'\n", inbuf);
+      vmdcon_printf(VMDCON_WARN, "psfplugin) Failed to parse atom type in PSF file:\n");
+      vmdcon_printf(VMDCON_WARN, "psfplugin)   '%s'\n", inbuf);
       return -1;
     }
     *q = (float) atof(rdbuf+34);
@@ -290,7 +291,7 @@ static int psf_get_bonds(FILE *f, int nbond, int fromAtom[], int toAtom[], int c
       // NAMD assumes a space-delimited variant of the PSF file format
       int cnt = fscanf(f, "%d %d", &fromAtom[i], &toAtom[i]);
       if (cnt < 2) {
-        fprintf(stderr, "Bonds line too short in NAMD psf file.\n");
+        vmdcon_printf(VMDCON_ERROR, "Bonds line too short in NAMD psf file.\n");
         break;
       }
     } else {
@@ -309,20 +310,20 @@ static int psf_get_bonds(FILE *f, int nbond, int fromAtom[], int toAtom[], int c
         }
 
         if (strlen(inbuf) < minlinesize) {
-          fprintf(stderr, "Bonds line too short in psf file: \n%s\n", inbuf);
+          vmdcon_printf(VMDCON_ERROR, "Bonds line too short in psf file: \n%s\n", inbuf);
           break;
         }
         bondptr = inbuf;
       }
 
       if ((fromAtom[i] = atoifw(&bondptr,fw)) < 1) {
-        printf("psfplugin) ERROR: Bond %d references atom with index < 1!\n", i);
+        vmdcon_printf(VMDCON_ERROR, "psfplugin) ERROR: Bond %d references atom with index < 1!\n", i);
         rc=-1;
         break;
       }
   
       if ((toAtom[i] = atoifw(&bondptr,fw)) < 1) {
-        printf("psfplugin) ERROR: Bond %d references atom with index < 1!\n", i);
+        vmdcon_printf(VMDCON_ERROR, "psfplugin) ERROR: Bond %d references atom with index < 1!\n", i);
         rc=-1;
         break;
       }
@@ -332,10 +333,10 @@ static int psf_get_bonds(FILE *f, int nbond, int fromAtom[], int toAtom[], int c
   }
 
   if (rc == -1) {
-    printf("psfplugin) ERROR: skipping bond info due to bad atom indices\n");
+    vmdcon_printf(VMDCON_ERROR, "psfplugin) ERROR: skipping bond info due to bad atom indices\n");
   } else if (i != nbond) {
-    printf("psfplugin) ERROR: unable to read the specified number of bonds!\n");
-    printf("psfplugin) Expected %d bonds but only read %d\n", nbond, i);
+    vmdcon_printf(VMDCON_ERROR, "psfplugin) ERROR: unable to read the specified number of bonds!\n");
+    vmdcon_printf(VMDCON_ERROR, "psfplugin) Expected %d bonds but only read %d\n", nbond, i);
   }
 
   return (i == nbond);
@@ -361,7 +362,7 @@ static void *open_psf_read(const char *path, const char *filetype,
     return NULL;
 
   if ((fp = fopen(path, "r")) == NULL) {
-    fprintf(stderr, "Couldn't open psf file %s\n", path);
+    vmdcon_printf(VMDCON_ERROR, "Couldn't open psf file %s\n", path);
     return NULL;
   }
 
@@ -420,14 +421,14 @@ static void *open_psf_read(const char *path, const char *filetype,
     progname = "Charmm";
   }
   if (psf->charmmcheq || psf->charmmcmap) {
-    printf("psfplugin) Detected a %s PSF file\n", progname);
+    vmdcon_printf(VMDCON_INFO, "psfplugin) Detected a %s PSF file\n", progname);
   }
   if (psf->charmmext) {
-    printf("psfplugin) Detected a %s PSF EXTEnded file\n", progname);
+    vmdcon_printf(VMDCON_INFO, "psfplugin) Detected a %s PSF EXTEnded file\n", progname);
   }
   if (psf->charmmdrude) {
-    printf("psfplugin) Detected a %s Drude polarizable force field file\n", progname);
-    printf("psfplugin) WARNING: Support for Drude FF is currently experimental\n");
+    vmdcon_printf(VMDCON_INFO, "psfplugin) Detected a %s Drude polarizable force field file\n", progname);
+    vmdcon_printf(VMDCON_INFO, "psfplugin) WARNING: Support for Drude FF is currently experimental\n");
   }
 
   psf->numatoms = *natoms;
@@ -448,7 +449,7 @@ static int read_psf(void *v, int *optflags, molfile_atom_t *atoms) {
                      atom->resname, atom->segid,
                      &atom->resid, atom->insertion, &atom->charge, &atom->mass, 
                      psf->namdfmt, psf->charmmext, psf->charmmdrude) < 0) {
-      fprintf(stderr, "couldn't read atom %d\n", i);
+      vmdcon_printf(VMDCON_ERROR, "couldn't read atom %d\n", i);
       fclose(psf->fp);
       psf->fp = NULL;
       return MOLFILE_ERROR;
@@ -491,7 +492,7 @@ static int read_bonds(void *v, int *nbonds, int **fromptr, int **toptr,
     *bondtype = NULL;
     *nbondtypes = 0;
     *bondtypename = NULL;
-    printf("psfplugin) WARNING: no bonds defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no bonds defined in PSF file.\n");
   }
 
   return MOLFILE_SUCCESS;
@@ -591,7 +592,7 @@ static int read_angles(void *v, int *numangles, int **angles,
     psf->angles = (int *) malloc(3*psf->numangles*sizeof(int));
     psf_get_angles(psf->fp, psf->numangles, psf->angles, psf->charmmext);
   } else {
-    printf("psfplugin) WARNING: no angles defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no angles defined in PSF file.\n");
   }
  
   psf->numdihedrals = psf_start_block(psf->fp, "NPHI");   /* get dihed count */
@@ -599,7 +600,7 @@ static int read_angles(void *v, int *numangles, int **angles,
     psf->dihedrals = (int *) malloc(4*psf->numdihedrals*sizeof(int));
     psf_get_dihedrals_impropers(psf->fp, psf->numdihedrals, psf->dihedrals, psf->charmmext);
   } else {
-    printf("psfplugin) WARNING: no dihedrals defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no dihedrals defined in PSF file.\n");
   }
  
   psf->numimpropers = psf_start_block(psf->fp, "NIMPHI"); /* get imprp count */
@@ -607,7 +608,7 @@ static int read_angles(void *v, int *numangles, int **angles,
     psf->impropers = (int *) malloc(4*psf->numimpropers*sizeof(int));
     psf_get_dihedrals_impropers(psf->fp, psf->numimpropers, psf->impropers, psf->charmmext);
   } else {
-    printf("psfplugin) WARNING: no impropers defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no impropers defined in PSF file.\n");
   }
 
   psf->numcterms = psf_start_block(psf->fp, "NCRTERM"); /* get cmap count */
@@ -617,7 +618,7 @@ static int read_angles(void *v, int *numangles, int **angles,
     /* same format as dihedrals, but double the number of terms */
     psf_get_dihedrals_impropers(psf->fp, psf->numcterms * 2, psf->cterms, psf->charmmext);
   } else {
-    printf("psfplugin) no cross-terms defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) no cross-terms defined in PSF file.\n");
   }
 
   *numangles = psf->numangles;
@@ -651,7 +652,7 @@ static int read_angles(void *v,
     psf->angles = (int *) malloc(3*psf->numangles*sizeof(int));
     psf_get_angles(psf->fp, psf->numangles, psf->angles);
   } else {
-    printf("psfplugin) WARNING: no angles defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no angles defined in PSF file.\n");
   }
  
   psf->numdihedrals = psf_start_block(psf->fp, "NPHI");   /* get dihed count */
@@ -659,7 +660,7 @@ static int read_angles(void *v,
     psf->dihedrals = (int *) malloc(4*psf->numdihedrals*sizeof(int));
     psf_get_dihedrals_impropers(psf->fp, psf->numdihedrals, psf->dihedrals);
   } else {
-    printf("psfplugin) WARNING: no dihedrals defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no dihedrals defined in PSF file.\n");
   }
  
   psf->numimpropers = psf_start_block(psf->fp, "NIMPHI"); /* get imprp count */
@@ -667,7 +668,7 @@ static int read_angles(void *v,
     psf->impropers = (int *) malloc(4*psf->numimpropers*sizeof(int));
     psf_get_dihedrals_impropers(psf->fp, psf->numimpropers, psf->impropers);
   } else {
-    printf("psfplugin) WARNING: no impropers defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: no impropers defined in PSF file.\n");
   }
 
   psf->numcterms = psf_start_block(psf->fp, "NCRTERM"); /* get cmap count */
@@ -677,7 +678,7 @@ static int read_angles(void *v,
     /* same format as dihedrals, but double the number of terms */
     psf_get_dihedrals_impropers(psf->fp, psf->numcterms * 2, psf->cterms);
   } else {
-    printf("psfplugin) no cross-terms defined in PSF file.\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) no cross-terms defined in PSF file.\n");
   }
 
   *numangles = psf->numangles;
@@ -739,7 +740,7 @@ static void *open_psf_write(const char *path, const char *filetype,
 
   fp = fopen(path, "w");
   if (!fp) {
-    fprintf(stderr, "Unable to open file %s for writing\n", path);
+    vmdcon_printf(VMDCON_ERROR, "Unable to open file %s for writing\n", path);
     return NULL;
   }
   psf = (psfdata *) malloc(sizeof(psfdata));
@@ -798,9 +799,9 @@ static int write_psf_structure(void *v, int optflags,
     }
   }
   if (psf->namdfmt == 1) {
-    printf("psfplugin) Structure requires space-delimited NAMD PSF format\n");
+    vmdcon_printf(VMDCON_INFO, "psfplugin) Structure requires space-delimited NAMD PSF format\n");
   } else if (psf->charmmext == 1) {
-    printf("psfplugin) Structure requires EXTended PSF format\n");
+    vmdcon_printf(VMDCON_INFO, "psfplugin) Structure requires EXTended PSF format\n");
   }
 
   /* check to see if we'll be writing cross-term maps */
@@ -821,8 +822,8 @@ static int write_psf_structure(void *v, int optflags,
   if (psf->charmmfmt) {
     fprintf(psf->fp," REMARKS %s\n","VMD-generated Charmm PSF structure file");
 
-    printf("psfplugin) WARNING: Charmm format PSF file is incomplete, atom type ID\n");
-    printf("psfplugin)          codes have been emitted as '0'. \n");
+    vmdcon_printf(VMDCON_INFO, "psfplugin) WARNING: Charmm format PSF file is incomplete, atom type ID\n");
+    vmdcon_printf(VMDCON_INFO, "psfplugin)          codes have been emitted as '0'. \n");
   } else {
     fprintf(psf->fp," REMARKS %s\n","VMD-generated NAMD/X-Plor PSF structure file");
   }
@@ -886,8 +887,8 @@ static int write_psf_structure(void *v, int optflags,
   }
 
   if (psf->numangles == 0 && psf->numdihedrals == 0 && psf->numimpropers == 0 && psf->numcterms == 0) {
-    printf("psfplugin) WARNING: PSF file is incomplete, no angles, dihedrals,\n");
-    printf("psfplugin)          impropers, or cross-terms will be written. \n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin) WARNING: PSF file is incomplete, no angles, dihedrals,\n");
+    vmdcon_printf(VMDCON_WARN, "psfplugin)          impropers, or cross-terms will be written. \n");
 
     fprintf(psf->fp, "%8d !NTHETA: angles\n\n\n", 0);
     fprintf(psf->fp, "%8d !NPHI: dihedrals\n\n\n", 0);
@@ -895,7 +896,7 @@ static int write_psf_structure(void *v, int optflags,
   } else {
     int i, numinline;
 
-    printf("psfplugin) Writing angles/dihedrals/impropers...\n");
+    vmdcon_printf(VMDCON_INFO, "psfplugin) Writing angles/dihedrals/impropers...\n");
 
     fprintf(psf->fp, "%8d !NTHETA: angles\n", psf->numangles);
     for (numinline=0,i=0; i<psf->numangles; i++) {
