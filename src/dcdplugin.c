@@ -54,6 +54,7 @@
 #include <time.h>
 #include "endianswap.h"
 #include "molfile_plugin.h"
+#include "vmdconio.h"
 
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661922
@@ -134,7 +135,7 @@ static void print_dcderror(const char *func, int errcode) {
       errstr = "no error";
       break;
   } 
-  printf("dcdplugin) %s: %s\n", func, errstr); 
+  vmdcon_printf(VMDCON_ERROR, "dcdplugin) %s: %s\n", func, errstr); 
 }
 
 
@@ -182,29 +183,29 @@ static int read_dcdheader(fio_fd fd, int *N, int *NSET, int *ISTART,
   if ((input_integer[0]+input_integer[1]) == 84) {
     *reverseEndian=0;
     rec_scale=RECSCALE64BIT;
-    printf("dcdplugin) detected CHARMM -i8 64-bit DCD file of native endianness\n");
+    vmdcon_printf(VMDCON_INFO, "dcdplugin) detected CHARMM -i8 64-bit DCD file of native endianness\n");
   } else if (input_integer[0] == 84 && input_integer[1] == dcdcordmagic) {
     *reverseEndian=0;
     rec_scale=RECSCALE32BIT;
-    printf("dcdplugin) detected standard 32-bit DCD file of native endianness\n");
+    vmdcon_printf(VMDCON_INFO, "dcdplugin) detected standard 32-bit DCD file of native endianness\n");
   } else {
     /* now try reverse endian */
     swap4_aligned(input_integer, 2); /* will have to unswap magic if 32-bit */
     if ((input_integer[0]+input_integer[1]) == 84) {
       *reverseEndian=1;
       rec_scale=RECSCALE64BIT;
-      printf("dcdplugin) detected CHARMM -i8 64-bit DCD file of opposite endianness\n");
+      vmdcon_printf(VMDCON_INFO, "dcdplugin) detected CHARMM -i8 64-bit DCD file of opposite endianness\n");
     } else {
       swap4_aligned(&input_integer[1], 1); /* unswap magic (see above) */
       if (input_integer[0] == 84 && input_integer[1] == dcdcordmagic) {
         *reverseEndian=1;
         rec_scale=RECSCALE32BIT;
-        printf("dcdplugin) detected standard 32-bit DCD file of opposite endianness\n");
+        vmdcon_printf(VMDCON_INFO, "dcdplugin) detected standard 32-bit DCD file of opposite endianness\n");
       } else {
         /* not simply reversed endianism or -i8, something rather more evil */
-        printf("dcdplugin) unrecognized DCD header:\n");
-        printf("dcdplugin)   [0]: %10d  [1]: %10d\n", input_integer[0], input_integer[1]);
-        printf("dcdplugin)   [0]: 0x%08x  [1]: 0x%08x\n", input_integer[0], input_integer[1]);
+        vmdcon_printf(VMDCON_ERROR, "dcdplugin) unrecognized DCD header:\n");
+        vmdcon_printf(VMDCON_ERROR, "dcdplugin)   [0]: %10d  [1]: %10d\n", input_integer[0], input_integer[1]);
+        vmdcon_printf(VMDCON_ERROR, "dcdplugin)   [0]: 0x%08x  [1]: 0x%08x\n", input_integer[0], input_integer[1]);
         return DCD_BADFORMAT;
 
       }
@@ -215,7 +216,7 @@ static int read_dcdheader(fio_fd fd, int *N, int *NSET, int *ISTART,
   if (rec_scale == RECSCALE64BIT) { 
     ret_val = READ(fd, input_integer, sizeof(unsigned int));
     if (input_integer[0] != dcdcordmagic) {
-      printf("dcdplugin) failed to find CORD magic in CHARMM -i8 64-bit DCD file\n");
+      vmdcon_printf(VMDCON_ERROR, "dcdplugin) failed to find CORD magic in CHARMM -i8 64-bit DCD file\n");
       return DCD_BADFORMAT;
     }
   }
@@ -246,10 +247,10 @@ static int read_dcdheader(fio_fd fd, int *N, int *NSET, int *ISTART,
 
   if (*charmm & DCD_IS_CHARMM) {
     /* CHARMM and NAMD versions 2.1b1 and later */
-    printf("dcdplugin) CHARMM format DCD file (also NAMD 2.1 and later)\n");
+    vmdcon_printf(VMDCON_INFO, "dcdplugin) CHARMM format DCD file (also NAMD 2.1 and later)\n");
   } else {
     /* CHARMM and NAMD versions prior to 2.1b1  */
-    printf("dcdplugin) X-PLOR format DCD file (also NAMD 2.0 and earlier)\n");
+    vmdcon_printf(VMDCON_INFO, "dcdplugin) X-PLOR format DCD file (also NAMD 2.0 and earlier)\n");
   }
 
   /* Store the number of sets of coordinates (NSET) */
@@ -313,20 +314,20 @@ static int read_dcdheader(fio_fd fd, int *N, int *NSET, int *ISTART,
     if (*reverseEndian) swap4_aligned(&NTITLE, 1);
 
     if (NTITLE < 0) {
-      printf("dcdplugin) WARNING: Bogus NTITLE value: %d (hex: %08x)\n", 
+      vmdcon_printf(VMDCON_WARN, "dcdplugin) WARNING: Bogus NTITLE value: %d (hex: %08x)\n", 
              NTITLE, NTITLE);
       return DCD_BADFORMAT;
     }
 
     if (NTITLE > 1000) {
-      printf("dcdplugin) WARNING: Bogus NTITLE value: %d (hex: %08x)\n", 
+      vmdcon_printf(VMDCON_WARN, "dcdplugin) WARNING: Bogus NTITLE value: %d (hex: %08x)\n", 
              NTITLE, NTITLE);
       if (NTITLE == 1095062083) {
-        printf("dcdplugin) WARNING: Broken Vega ZZ 2.4.0 DCD file detected\n");
-        printf("dcdplugin) Assuming 2 title lines, good luck...\n");
+        vmdcon_printf(VMDCON_WARN, "dcdplugin) WARNING: Broken Vega ZZ 2.4.0 DCD file detected\n");
+        vmdcon_printf(VMDCON_WARN, "dcdplugin) Assuming 2 title lines, good luck...\n");
         NTITLE = 2;
       } else {
-        printf("dcdplugin) Assuming zero title lines, good luck...\n");
+        vmdcon_printf(VMDCON_WARN, "dcdplugin) Assuming zero title lines, good luck...\n");
         NTITLE = 0;
       }
     }
@@ -850,12 +851,12 @@ static void *open_dcd_read(const char *path, const char *filetype,
   /* See if the file exists, and get its size */
   memset(&stbuf, 0, sizeof(struct stat));
   if (stat(path, &stbuf)) {
-    printf("dcdplugin) Could not access file '%s'.\n", path);
+    vmdcon_printf(VMDCON_ERROR, "dcdplugin) Could not access file '%s'.\n", path);
     return NULL;
   }
 
   if (fio_open(path, FIO_READ, &fd) < 0) {
-    printf("dcdplugin) Could not open file '%s' for reading.\n", path);
+    vmdcon_printf(VMDCON_ERROR, "dcdplugin) Could not open file '%s' for reading.\n", path);
     return NULL;
   }
 
@@ -907,7 +908,7 @@ static void *open_dcd_read(const char *path, const char *filetype,
 #endif
     trjsize = filesize - curpos - firstframesize;
     if (trjsize < 0) {
-      printf("dcdplugin) file '%s' appears to contain no timesteps.\n", path);
+      vmdcon_printf(VMDCON_WARN, "dcdplugin) file '%s' appears to contain no timesteps.\n", path);
       fio_fclose(dcd->fd);
       free(dcd);
       return NULL;
@@ -916,7 +917,7 @@ static void *open_dcd_read(const char *path, const char *filetype,
     newnsets = trjsize / framesize + 1;
 
     if (dcd->nsets > 0 && newnsets != dcd->nsets) {
-      printf("dcdplugin) Warning: DCD header claims %d frames, file size indicates there are actually %d frames\n", dcd->nsets, newnsets);
+      vmdcon_printf(VMDCON_WARN, "dcdplugin) Warning: DCD header claims %d frames, file size indicates there are actually %d frames\n", dcd->nsets, newnsets);
     }
 
     dcd->nsets = newnsets; 
@@ -928,7 +929,7 @@ static void *open_dcd_read(const char *path, const char *filetype,
   dcd->y = (float *)malloc(dcd->natoms * sizeof(float));
   dcd->z = (float *)malloc(dcd->natoms * sizeof(float));
   if (!dcd->x || !dcd->y || !dcd->z) {
-    printf("dcdplugin) Unable to allocate space for %d atoms.\n", dcd->natoms);
+    vmdcon_printf(VMDCON_ERROR, "dcdplugin) Unable to allocate space for %d atoms.\n", dcd->natoms);
     if (dcd->x)
       free(dcd->x);
     if (dcd->y)
@@ -1047,7 +1048,7 @@ static void *open_dcd_write(const char *path, const char *filetype,
   int charmm;
 
   if (fio_open(path, FIO_WRITE, &fd) < 0) {
-    printf("dcdplugin) Could not open file '%s' for writing\n", path);
+    vmdcon_printf(VMDCON_ERROR, "dcdplugin) Could not open file '%s' for writing\n", path);
     return NULL;
   }
 
@@ -1062,8 +1063,8 @@ static void *open_dcd_write(const char *path, const char *filetype,
   if (getenv("VMDDCDWRITEXPLORFORMAT") != NULL) {
     with_unitcell = 0;      /* no unit cell info */
     charmm = DCD_IS_XPLOR;  /* X-PLOR format */
-    printf("dcdplugin) WARNING: Writing DCD file in X-PLOR format, \n");
-    printf("dcdplugin) WARNING: unit cell information will be lost!\n");
+    vmdcon_printf(VMDCON_WARN, "dcdplugin) WARNING: Writing DCD file in X-PLOR format, \n");
+    vmdcon_printf(VMDCON_WARN, "dcdplugin) WARNING: unit cell information will be lost!\n");
   } else {
     with_unitcell = 1;      /* contains unit cell infor (Charmm format) */
     charmm = DCD_IS_CHARMM; /* charmm-formatted DCD file                */ 
@@ -1210,7 +1211,7 @@ int main(int argc, char *argv[]) {
     natoms = 0;
     v = open_dcd_read(*argv, "dcd", &natoms);
     if (!v) {
-      fprintf(stderr, "main) open_dcd_read failed for file %s\n", *argv);
+      vmdcon_printf(VMDCON_ERROR, "main) open_dcd_read failed for file %s\n", *argv);
       return 1;
     }
     dcd = (dcdhandle *)v;
@@ -1224,7 +1225,7 @@ int main(int argc, char *argv[]) {
     for (i=0; i<dcd->nsets; i++) {
       int rc = read_next_timestep(v, natoms, &timestep);
       if (rc) {
-        fprintf(stderr, "error in read_next_timestep on frame %d\n", i);
+        vmdcon_printf(VMDCON_ERROR, "error in read_next_timestep on frame %d\n", i);
         return 1;
       }
     }
