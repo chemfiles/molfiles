@@ -949,7 +949,8 @@ static int read_next_timestep(void *v, int natoms, molfile_timestep_t *ts) {
   dcdhandle *dcd;
   int i, j, rc;
   float unitcell[6];
-  unitcell[0] = unitcell[2] = unitcell[5] = 1.0f;
+  // default: infinite cell with lengths equal zero
+  unitcell[0] = unitcell[2] = unitcell[5] = 0.0f;
   unitcell[1] = unitcell[3] = unitcell[4] = 90.0f;
   dcd = (dcdhandle *)v;
 
@@ -1100,7 +1101,8 @@ static int write_timestep(void *v, const molfile_timestep_t *ts) {
   int i, rc, curstep;
   float *pos = ts->coords;
   double unitcell[6];
-  unitcell[0] = unitcell[2] = unitcell[5] = 1.0f;
+  // default: infinite cell with lengths equal zero
+  unitcell[0] = unitcell[2] = unitcell[5] = 0.0f;
   unitcell[1] = unitcell[3] = unitcell[4] = 90.0f;
 
   /* copy atom coords into separate X/Y/Z arrays for writing */

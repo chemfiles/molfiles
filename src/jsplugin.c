@@ -1132,7 +1132,8 @@ static int read_js_timestep(void *v, int natoms, molfile_timestep_t *ts) {
     /* set unit cell pointer to the TS block-aligned buffer area */
     double *unitcell = (double *) js->directio_ucell_blkbuf;
 
-    unitcell[0] = unitcell[2] = unitcell[5] = 1.0f;
+    // default: infinite cell with lengths equal zero
+    unitcell[0] = unitcell[2] = unitcell[5] = 0.0f;
     unitcell[1] = unitcell[3] = unitcell[4] = 90.0f;
 
 #if defined(ENABLEJSSHORTREADS)
