@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 2.8.12)
-project(molfiles C CXX)
+cmake_minimum_required(VERSION 3.16)
+
+project(chemfiles-molfiles C CXX)
 
 if (POLICY CMP0063)
     # Use of `CXX_VISIBILITY_PRESET` and `VISIBILITY_INLINES_HIDDEN` in OBJECT
@@ -23,4 +24,9 @@ if("${VMD_MOLFILE_PLUGINS}" STREQUAL "")
 endif()
 
 include_directories(include)
-add_library(molfiles OBJECT ${MOLFILES_SRC})
+add_library(chemfiles_molfiles OBJECT ${MOLFILES_SRC})
+set_target_properties(chemfiles_molfiles PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+)

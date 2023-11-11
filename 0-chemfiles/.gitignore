@@ -1,0 +1,5 @@
+build/
+molfiles/
+molfiles.tar.gz
+
+!*.patch
